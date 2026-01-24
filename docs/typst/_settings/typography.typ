@@ -10,17 +10,26 @@
   numbering: "1.1"
 )
 
-#show heading: it => {
+// Force pagebreak before all level 1 headings
+#show heading.where(level: 1): it => [
+  #pagebreak()
+  #set text(size: 1.6em, weight: "bold", fill: rgb("#000000"))
+  #it
+  #v(0.3em)
+  #line(length: 100%, stroke: 1.5pt + rgb("#d1d5db"))
+  #v(0.4em)
+]
+
+// Default styling for other headings
+#show heading.where(level: 2): it => {
   set text(weight: "semibold", fill: rgb("#111827"))
   it
   v(0.4em)
 }
 
-#show heading.where(level: 1): it => {
-  set text(size: 1.6em, weight: "bold", fill: rgb("#000000"))
-  v(0.5em)
+#show heading.where(level: 3): it => {
+  set text(weight: "semibold", fill: rgb("#111827"))
   it
-  v(0.3em)
-  line(length: 100%, stroke: 1.5pt + rgb("#d1d5db"))
   v(0.4em)
 }
+

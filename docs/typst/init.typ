@@ -7,6 +7,7 @@
 #import "_settings/defaults.typ": *
 #import "_settings/page.typ": *
 #import "_settings/typography.typ": *
+#import "_settings/packages.typ": *
 
 // ============================================================================
 // COLORS - Color palette and utilities
