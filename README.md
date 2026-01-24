@@ -1,5 +1,14 @@
 # Atlas
 
+This is the **Atlas project**. My attempt at creating an entire computational ecosystem completely *from scratch*. Including everything from the ISA, over the actual CPU implementation up to the multi-tasking operating system and it's programs.
+
+As you might imagine, this is meant to me a long term project of mine.
+
+
+## Structure
+
+When adding new things to this project, please follow this concept:
+
 ```text
 Atlas/
 ├── docs/                   # Documentation, design notes, whitepapers
