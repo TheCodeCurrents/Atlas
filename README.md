@@ -1,14 +1,5 @@
 # Atlas
 
-├── docs/               # Documentation, design notes, whitepapers
-│   ├── isa/            # ISA specifications per CPU architecture
-│   ├── arch/           # Architecture concepts (Atlas8, future CPUs)
-│   ├── hw/             # Hardware manuals, schematics, memory mapping
-│   └── software/       # Software ecosystem documentation, OS design notes
-├── cpu/                # CPU definitions, ISAs, and implementations
-│   ├── atlas8/         # Atlas8 specific stuff
-│   │   ├── isa/        # Instruction set definitions, encoding tables
-│   │   ├── rtl/        # Hardware implementations
 ```text
 Atlas/
 ├── docs/               # Documentation, design notes, whitepapers
