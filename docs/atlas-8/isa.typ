@@ -27,4 +27,15 @@ It uses fixed-length 16-bit instructions and a load/store architecture.
 == Machine Model
 
 The Atlas-8 processor has the following key components:
-- 10 general-purpose registers (R0-R9), each 8 bits wide.
+- 16 8-bit registers (R0-R15)
+  -> 10 general-purpose registers (R0-R9)
+  -> 3 16-bit (2x8-bit) special-purpose registers (R10-R15)
+- 64KB of byte-addressable memory
+- Program Counter (PC) and Status Register (SR)
+- 2 cache levels (L1 and L2) for instruction and data caching
+- Memory Management Unit (MMU) for virtual memory support (maps 16-bit virtual addresses to 24-bit physical addresses)
+
+== Instruction Set
+The Atlas-8 ISA includes a base instruction set and optional extensions for caching and memory management.
+The base instruction set consists of arithmetic, logical, data movement, control flow, and system instructions.
+Each instruction is 16 bits long and follows a fixed format based on it's type. There are 8 primary instruction formats: R-type, I-type, J-type, S-type, and U-type.
