@@ -38,8 +38,6 @@ The Atlas-8 ISA includes a base instruction set and optional extensions for cach
 The base instruction set consists of arithmetic, logical, data movement, control flow, and system instructions.
 Each instruction is 16 bits long and follows a fixed format based on it's type. There are 8 primary instruction formats: R-type, I-type, J-type, S-type, and U-type.
 
-
-
 = Machine Model
 
 The Atlas-8 processor implements a simplified yet powerful machine model designed to balance performance with implementation simplicity. This section details the core components and their interactions.
@@ -83,7 +81,7 @@ The Atlas-8 ISA includes a cache extension that introduces a two-level cache hie
 - 4-way associative
 
 *Level 2 Cache (L2):*
-- 8 KB unified cache
+- unified cache
 - 64-byte cache lines
 - 8-way associative
 
