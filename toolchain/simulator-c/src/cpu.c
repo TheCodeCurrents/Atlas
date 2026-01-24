@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "instructions.h"
 
 /// @brief Initialize the CPU with the given memory size
 /// @param cpu Pointer to the CPU structure to initialize
@@ -26,4 +27,19 @@ void cpu_init(CPU *cpu, uint32_t memory_size) {
     // Initialize memory to zero
     memset(cpu->memory, 0, memory_size);
 
+    // initialize instruction table
+    instructions_init();
+
+}
+
+
+/* ===== Fetch–Decode–Execute ===== */
+
+void cpu_step(CPU *cpu)
+{
+    cpu->ir.bytes[0] = cpu->memory[cpu->registers.pc.value++];
+    cpu->ir.bytes[1] = cpu->memory[cpu->registers.pc.value++];
+
+    // InstrFn fn = atlas_dispatch[??];
+    // fn(cpu);
 }

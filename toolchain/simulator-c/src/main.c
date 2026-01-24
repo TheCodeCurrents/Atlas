@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "cpu.h"
+#include "instructions.h"
 
 CPU cpu;
 
@@ -13,11 +14,12 @@ int main() {
 
     while (running)
     {
-        cpu.registers.pc.value++;  // Increment program counter
-        printf("PC: %04X\n", cpu.registers.pc.value);
+        // fetch instruction
+        cpu.ir.bytes[0] = cpu.memory[cpu.registers.pc.value++];
+        cpu.ir.bytes[1] = cpu.memory[cpu.registers.pc.value++];
 
-        // wait timer
-        for (volatile int i = 0; i < 1000000; i++);
+        // execute instruction
+        
     }
     
     return 0;

@@ -47,3 +47,8 @@ typedef struct {
 /// @param cpu Pointer to the CPU structure to initialize
 /// @param memory_size Size of the memory to allocate for the CPU
 void cpu_init(CPU *cpu, uint32_t memory_size);
+
+
+/// @brief Execute one instruction
+/// @param cpu Pointer to the CPU structure
+void cpu_step(CPU *cpu);
