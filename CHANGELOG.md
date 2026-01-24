@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - gitignore
 - typst documentation module
+- Atlas 8 ISA - overview
+- Atlas 8 ISA - machine model
 
 ## [0.1.0] 2026-01-24
 
