@@ -1,0 +1,19 @@
+# Build outputs
+*.pdf
+build/
+output/
+dist/
+
+# Typst cache
+.typst-cache/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
