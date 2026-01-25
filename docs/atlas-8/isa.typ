@@ -6,12 +6,14 @@
 #let title = "Atlas-8 ISA Specification"
 #let version = "1.0"
 #let date = "January 2026"
-#let author = "Atlas Project"
+#let author = "Jakob Flocke – Atlas Project"
 #let overview = "Complete instruction set architecture specification for the Atlas-8 processor, including the base instruction set and optional ISA extensions for caching and memory management."
 
 #doc-title(title, version: version, date: date, author: author, overview: overview)
 
 #outline()
+
+#pagebreak()
 
 = Overview
 
@@ -37,6 +39,8 @@ The Atlas-8 processor has the following key components:
 The Atlas-8 ISA includes a base instruction set and optional extensions for caching and memory management.
 The base instruction set consists of arithmetic, logical, data movement, control flow, and system instructions.
 Each instruction is 16 bits long and follows a fixed format based on it's type. There are 8 primary instruction formats: R-type, I-type, J-type, S-type, and U-type.
+
+#pagebreak()
 
 = Machine Model
 
@@ -116,3 +120,411 @@ The Atlas-8 supports two privilege levels:
 
 Mode transitions occur through exception handling and return-from-exception instructions.
 
+#pagebreak()
+
+= Instruction Format
+
+The instructions are encoded in a fixed length 16-bit format with 7 primary types:
+- A-type: Arithmetic and Logical Instructions
+- I-type: Immediate Instructions
+- M-type: Memory Instructions
+- BI-type: Branch Immediate Instructions
+- BR-type: Branch Register Instructions
+- S-type: Stack Instructions
+- X-type: Extended Instructions
+
+The type is always determined by its first 4 bits called the type field.
+
+== A-type Instructions
+The A-type instructions perform arithmetic and logical operations between a source and a destination register.
+$
+  r_d = r_d times r_s
+$
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0000],
+    [11:8],   [destination register (r_d)],
+    [7:4],    [source register (r_s)],
+    [3:0],    [operation code (opcode) for arithmetic/logical operation]
+  )
+]
+
+This results in the following list of instructions:
+
+#align(center)[
+  #table(
+    columns: 4,
+    align: (center, center, left, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Opcode*], [*Mnemonic*], [*Description*], [*Operation*],
+    [0],      [add],      [Add],          [$r_d = r_d + r_s$],
+    [1],      [addc],     [Add with Carry],        [$r_d = r_d + r_s + C$],
+    [2],      [sub],      [Subtract],      [$r_d = r_d - r_s$],
+    [3],      [subc],     [Subtract with Carry],   [$r_d = r_d - r_s - C$],
+    [4],      [and],      [Bitwise AND],    [$r_d = r_d and r_s$],
+    [5],      [or],       [Bitwise OR],     [$r_d = r_d or r_s$],
+    [6],      [xor],      [Bitwise XOR],    [$r_d = r_d xor r_s$],
+    [7],      [not],      [Bitwise NOT],    [$r_d = not r_s$],
+    [8],      [shl],      [Shift Left],     [$r_d = r_s << 1$],
+    [9],      [shr],      [Shift Right],    [$r_d = r_s >> 1$],
+    [10],     [rol],      [Rotate Left],    [$r_d = (r_s << 1) | (r_s >> 7)$],
+    [11],     [ror],      [Rotate Right],   [$r_d = (r_s >> 1) | (r_s << 7)$],
+    [12],     [cmp],      [Compare],        [Set flags based on $r_d - r_s$],
+    [13],     [tst],      [Test],          [Sets flags based on $r_d and r_s$],
+    [14],     [mov],      [Move],          [$r_d = r_s$],
+    [15],     [neg],      [Negate],        [$r_d = -r_d$]
+  )
+]
+
+== I-type Instructions
+I-type instructions perform operations between a register and an 8-bit immediate value.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0001 (ldi), 0010 (addi), 0011 (subi), 0100 (andi) or 0101 (ori)],
+    [11:8],   [destination register (r_d)],
+    [7:0],    [immediate value (imm8)],
+  )
+]
+
+This results in the following instructions: \
+ldi rd, imm8
+addi rd, imm8
+subi rd, imm8
+andi rd, imm8
+ori rd, imm8
+
+== M-type Instructions
+M-type instructions handle memory load and store operations between registers and memory addresses.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0110 (load) or 0111 (store)],
+    [11:8],   [register designed / source],
+    [7:4],    [base register (r_b)],
+    [3:0],    [offset (4-bit signed immediate) or spr-code]
+  )
+]
+
+The field [3:0] holds a 4-bit signed offset with three reserved codes for special-purpose registers:
+- 0b1000: Temporary Register (TR)
+- 0b1001: Stack Pointer (SP)
+- 0b1010: Program Counter (PC)
+This results in the following possible immediate values for offset:
+- -5 to +7 (4-bit signed immediate)
+
+This results in the following list of instructions:
+- Load Instructions (type-field = 0010):
+  - ld rd, [rb]
+  - ld rd, [rb + offset]
+  - lds rd, [rb + spr]
+- Store Instructions (type-field = 0011):
+  - st rd, [rb]
+  - st rd, [rb + offset]
+  - sts rd, [rb + spr]
+
+== BI-type Instructions
+The BI-type instructions perform conditional branches based on the status flags and an 8-bit signed immediate offset.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 1000 (branch immediate)],
+    [11:11],  [relative (0) / absolute (1)],
+    [10:8],   [condition code],
+    [7:0],    [offset (8-bit signed immediate)]
+  )
+]
+
+== BR-type Instructions
+The BR-type instructions perform conditional branches based on the status flags and an 8-bit or 16-bit signed register offset.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 1001 (branch register)],
+    [11:11],  [relative (0) / absolute (1)],
+    [10:8],   [condition code],
+    [7:4],    [rs low],
+    [3:0],    [rs high]
+  )
+]
+
+This results in the following list of condition codes:
+- 000: always
+- 001: equal (Z=1)
+- 010: not equal (Z=0)
+- 011: carry set (C=1)
+- 100: carry clear (C=0)
+- 101: negative (N=1)
+- 110: positive (N=0)
+- 111: overflow (V=1)
+
+=== Resulting Instructions
+All of the following instructions use either an 8-bit signed immediate offset (BI-type) or a register pair as 16-bit signed offset (BR-type):
+
+#align(center)[
+  #table(
+    columns: 4,
+    align: (center, center, left, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Mnemonic*], [*Type*], [*Description*], [*Operation*],
+    [br],     [BI-type],    [Branch unconditionally], [PC = PC + offset],
+    [beq],    [BI-type],    [Branch if Equal],        [if Z=1 then PC = PC + offset],
+    [bne],    [BI-type],    [Branch if Not Equal],    [if Z=0 then PC = PC + offset],
+    [bcs],    [BI-type],    [Branch if Carry Set],    [if C=1 then PC = PC + offset],
+    [bcc],    [BI-type],    [Branch if Carry Clear],  [if C=0 then PC = PC + offset],
+    [bmi],    [BI-type],    [Branch if Negative],     [if N=1 then PC = PC + offset],
+    [bpl],    [BI-type],    [Branch if Positive],     [if N=0 then PC = PC + offset],
+    [bov],    [BI-type],    [Branch if Overflow],     [if V=1 then PC = PC + offset]
+  )
+]
+
+== S-type Instructions
+S-type instructions manage stack operations using the Stack Pointer (SP).
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 1010],
+    [11:8],   [extended opcode (xop)],
+    [7:0],    [imm8 or register pair depending on xop]
+  )
+]
+
+That results in the following list of instructions:
+
+#align(center)[
+  #table(
+    columns: 4,
+    align: (center, center, left, left),
+    fill: (x, y) => if y == 0 { gray.lighten(40%) },
+    [*xop*], [*Mnemonic*],  [*Description*],            [*Operation*],
+    [0x0],    [push rs],    [Push register onto stack], [SP = SP - 2; MEM[SP] = rs],
+    [0x1],    [pop rd],     [Pop register from stack],  [SP = SP + 2; rd = MEM[SP]],
+    [0x2],    [subsp imm8], [allocate stack],           [SP = SP - imm8],
+    [0x3],    [subsp rs],   [allocate stack],           [SP = SP - register],
+    [0x4],    [addsp imm8], [deallocate stack],         [SP = SP + imm8],
+    [0x5],    [addsp rs],   [deallocate stack],         [SP = SP + register],
+  )
+]
+
+== P-type Instructions
+P-type instructions perform Peek and Poke operations to read and write to an 8-bit unsigned offset relative to the SP.
+Adding this as a separate type is a tradeoff I was willing to make to increase the offset size from 4 to 8-bit unsigned immediates.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 1011 (peek) or 1100 (poke)],
+    [11:8],   [register source / destination],
+    [7:0],    [offset (8-bit unsigned immediate)]
+  )
+]
+
+This results in the following instructions:
+- peek rd, offset
+- poke rs, offset
+
+=== possible wishes
+
+I would liek to expand it to have a poke / peek with an 8-bit immediate, but where to put the register source / destination encoding?
+
+== X-type Instructions
+
+X-type instructions are used for extended and privileged operations, including system control, exception handling, cache control, and MMU management. All X-type instructions are *privileged* unless explicitly stated otherwise. Executing a privileged X-type instruction in user mode raises an illegal instruction exception.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) => if y == 0 { gray.lighten(40%) },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 1101],
+    [11:8],   [extended opcode (xop)],
+    [7:0],    [8-bit immediate or register operands depending on xop]
+  )
+]
+
+=== Encoding Conventions
+
+- Instructions with no operands ignore bits [7:0].
+- Instructions with one register use bits [7:4] for the register index.
+- Instructions with two registers use bits [7:4] = rs and [3:0] = rd.
+- All MMU and cache instructions are executed in supervisor mode only.
+
+=== Privilege and Exception Control
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
+  [0x0], [syscall], [Enter supervisor mode], [Trap to supervisor exception vector],
+  [0x1], [eret], [Return from exception], [Restore PC, SR, and previous privilege mode],
+  [0x2], [halt], [Halt processor], [Stop execution until reset or interrupt]
+)
+
+=== Memory Management Unit (MMU) Control
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
+  [0x4], [mmu_on], [Enable MMU], [Enable address translation and implicitly flush MMU state],
+  [0x5], [mmu_off], [Disable MMU], [Disable address translation],
+  [0x6], [mmuwr], [Write MMU entry], [MMU[rs] ← rd (packed physical page and flags)],
+  [0x7], [mmurd], [Read MMU entry], [rd ← MMU[rs]],
+  [0x8], [mmuflush], [Flush MMU translations], [Invalidate all cached translations],
+  [0x9], [mmupid], [Set active process ID], [PID ← rd]
+)
+
+=== Cache Control
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
+  [0xA], [icache_inv], [Invalidate instruction cache], [Discard all instruction cache contents],
+  [0xB], [dcache_inv], [Invalidate data cache], [Discard all data cache contents],
+  [0xC], [dcache_clean], [Clean data cache], [Write back dirty cache lines to memory],
+  [0xD], [cache_flush], [Flush all caches], [Clean and invalidate all cache levels]
+)
+
+#pagebreak()
+
+= Instruction Set Summary
+
+This section provides a summary of all instructions defined in the Atlas-8 ISA.
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*Mnemonic*], [*Type*], [*Description*], [*Operation*],
+  // A-type Instructions
+  [add], [A-type], [Add], [rd = rd + rs],
+  [addc], [A-type], [Add with Carry], [rd = rd + rs + C],
+  [sub], [A-type], [Subtract], [rd = rd - rs],
+  [subc], [A-type], [Subtract with Carry], [rd = rd - rs - C],
+  [and], [A-type], [Bitwise AND], [rd = rd and rs],
+  [or], [A-type], [Bitwise OR], [rd = rd or rs],
+  [xor], [A-type], [Bitwise XOR], [rd = rd xor rs],
+  [not], [A-type], [Bitwise NOT], [rd = not rs],
+  [shl], [A-type], [Shift Left], [rd = rs << 1],
+  [shr], [A-type], [Shift Right], [rd = rs >> 1],
+  [rol], [A-type], [Rotate Left], [rd = (rs << 1) | (rs >> 7)],
+  [ror], [A-type], [Rotate Right], [rd = (rs >> 1) | (rs << 7)],
+  [cmp], [A-type], [Compare], [Set flags based on rd - rs],
+  [tst], [A-type], [Test], [Sets flags based on rd and rs],
+  [mov], [A-type], [Move], [rd = rs],
+  [neg], [A-type], [Negate], [rd = -rd],
+  // I-type Instructions
+  [ldi], [I-type], [Load Immediate], [rd = imm8],
+  [addi], [I-type], [Add Immediate], [rd = rd + imm8],
+  [subi], [I-type], [Subtract Immediate], [rd = rd - imm8],
+  [andi], [I-type], [AND Immediate], [rd = rd and imm8],
+  [ori], [I-type], [OR Immediate], [rd = rd or imm8],
+  // M-type Instructions
+  [ld], [M-type], [Load from Memory], [rd = MEM[rb + offset]],
+  [st], [M-type], [Store to Memory], [MEM[rb + offset] = rd],
+  // BI-type Instructions
+  [br], [BI-type], [Branch unconditionally], [PC = PC + offset],
+  [beq], [BI-type], [Branch if Equal], [if Z=1 then PC = PC + offset],
+  [bne], [BI-type], [Branch if Not Equal], [if Z=0 then PC = PC + offset],
+  [bcs], [BI-type], [Branch if Carry Set], [if C=1 then PC = PC + offset],
+  [bcc], [BI-type], [Branch if Carry Clear], [if C=0 then PC = PC + offset],
+  [bmi], [BI-type], [Branch if Negative], [if N=1 then PC = PC + offset],
+  [bpl], [BI-type], [Branch if Positive], [if N=0 then PC = PC + offset],
+  [bov], [BI-type], [Branch if Overflow], [if V=1 then PC = PC + offset],
+  // BR-type Instructions
+  [br], [BR-type], [Branch unconditionally], [PC = PC + rs],
+  [beq], [BR-type], [Branch if Equal], [if Z=1 then PC = PC + rs],
+  [bne], [BR-type], [Branch if Not Equal], [if Z=0 then PC = PC + rs],
+  [bcs], [BR-type], [Branch if Carry Set], [if C=1 then PC = PC + rs],
+  [bcc], [BR-type], [Branch if Carry Clear], [if C=0 then PC = PC + rs],
+  [bmi], [BR-type], [Branch if Negative], [if N=1 then PC = PC + rs],
+  [bpl], [BR-type], [Branch if Positive], [if N=0 then PC = PC + rs],
+  [bov], [BR-type], [Branch if Overflow], [if V=1 then PC = PC + rs],
+  // S-type Instructions
+  [push], [S-type], [Push register onto stack], [SP = SP - 2; MEM[SP] = rs],
+  [pop], [S-type], [Pop register from stack], [SP = SP + 2; rd = MEM[SP]],
+  [subsp], [S-type], [Allocate stack], [SP = SP - imm8 or SP = SP - register],
+  [addsp], [S-type], [Deallocate stack], [SP = SP + imm8 or SP = SP + register],
+  // P-type Instructions
+  [peek], [P-type], [Peek from stack], [rd = MEM[SP + offset]],
+  [poke], [P-type], [Poke to stack], [MEM[SP + offset] = rs],
+  // X-type Instructions
+  [syscall], [X-type], [Enter supervisor mode], [Trap to supervisor exception vector],
+  [eret], [X-type], [Return from exception], [Restore PC, SR, and previous privilege mode],
+  [halt], [X-type], [Halt processor], [Stop execution until reset or interrupt],
+  [mmu_on], [X-type], [Enable MMU], [Enable address translation and implicitly flush MMU state],
+  [mmu_off], [X-type], [Disable MMU], [Disable address translation],
+  [mmuwr], [X-type], [Write MMU entry], [MMU[rs] ← rd (packed physical page and flags)],
+  [mmurd], [X-type], [Read MMU entry], [rd ← MMU[rs]],
+  [mmuflush], [X-type], [Flush MMU translations], [Invalidate all cached translations],
+  [mmupid], [X-type], [Set active process ID], [PID ← rd],
+  [icache_inv], [X-type], [Invalidate instruction cache], [Discard all instruction cache contents],
+  [dcache_inv], [X-type], [Invalidate data cache], [Discard all data cache contents],
+  [dcache_clean], [X-type], [Clean data cache], [Write back dirty cache lines to memory],
+  [cache_flush], [X-type], [Flush all caches], [Clean and invalidate all cache levels],
+
+  // virtual instructions
+  [nop], [virtual], [No Operation], [r0 = r0 + r0],
+  [inc], [virtual], [Increment], [rd = rd + 1],
+  [dec], [virtual], [Decrement], [rd = rd - 1]
+)
