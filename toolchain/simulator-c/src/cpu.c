@@ -14,6 +14,7 @@ void cpu_init(CPU *cpu, uint32_t memory_size) {
         cpu->registers.regs[i] = 0;     // Initialize all general-purpose registers to 0
     }
     cpu->ir.value = 0;                  // Initialize instruction register to 0
+    cpu->sr = 0;                        // Initialize status register
     cpu->registers.sp.value = 0xFFFF;   // Initialize stack pointer to top of memory
 
     // allocate memory
@@ -64,12 +65,10 @@ void cpu_step(CPU *cpu)
             instr_st(cpu);
             break;
         case INSTR_TYPE_BI:
-            // TODO: Implement BI-type instructions
-            instr_illegal(cpu);
+            instr_br_i(cpu);
             break;
         case INSTR_TYPE_BR:
-            // TODO: Implement BR-type instructions
-            instr_illegal(cpu);
+            instr_br_r(cpu);
             break;
         case INSTR_TYPE_S_0:
         case INSTR_TYPE_S_1:

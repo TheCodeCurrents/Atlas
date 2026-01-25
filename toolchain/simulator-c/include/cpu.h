@@ -39,8 +39,29 @@ typedef union {
 typedef struct {
     RegisterFile registers;
     DoubleRegister ir;  // instruction register
+    uint8_t sr;          // status register
     uint8_t* memory;    
 } CPU;
+
+typedef enum {
+    SR_C = 1u << 0,
+    SR_Z = 1u << 1,
+    SR_N = 1u << 2,
+    SR_V = 1u << 3,
+} StatusFlag;
+
+static inline uint8_t cpu_flag_get(const CPU *cpu, StatusFlag flag)
+{
+    return (cpu->sr & flag) != 0;
+}
+
+static inline void cpu_flag_set(CPU *cpu, StatusFlag flag, uint8_t value)
+{
+    if (value)
+        cpu->sr |= flag;
+    else
+        cpu->sr &= (uint8_t)~flag;
+}
 
 
 /// @brief Initialize the CPU with the given memory size

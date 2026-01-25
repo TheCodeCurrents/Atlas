@@ -75,10 +75,10 @@ void instr_ld(CPU *cpu); // load from address in register
 void instr_st(CPU *cpu); // store to address in register
 
 /* BI-type instructions */
-void instr_bi(CPU *cpu);
+void instr_br_i(CPU *cpu);
 
 /* BR-type instructions */
-void instr_br(CPU *cpu);
+void instr_br_r(CPU *cpu);
 
 /* S-type instructions */
 void instr_push(CPU *cpu);

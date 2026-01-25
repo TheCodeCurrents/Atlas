@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "status.h"
+
 /* ===== Dispatch table ===== */
 
 InstrFn atlas_dispatch_a[A_OP_COUNT];
@@ -22,7 +24,11 @@ void instr_illegal(CPU *cpu) {
 void instr_add(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    cpu->registers.regs[rd] += cpu->registers.regs[rs];
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t b = cpu->registers.regs[rs];
+    uint8_t r = (uint8_t)(a + b);
+    cpu->registers.regs[rd] = r;
+    sr_add8(cpu, a, b, 0, r);
 }
 
 /// @brief Add the values of two registers and store the result in the destination register, with carry
@@ -30,99 +36,130 @@ void instr_add(CPU *cpu) {
 void instr_addc(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    // TODO: Implement carry flag
-    cpu->registers.regs[rd] = cpu->registers.regs[rd] + cpu->registers.regs[rs]; // + carry
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t b = cpu->registers.regs[rs];
+    uint8_t c = cpu_flag_get(cpu, SR_C);
+    uint8_t r = (uint8_t)(a + b + c);
+    cpu->registers.regs[rd] = r;
+    sr_add8(cpu, a, b, c, r);
 }
 
 void instr_sub(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    cpu->registers.regs[rd] -= cpu->registers.regs[rs];
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t b = cpu->registers.regs[rs];
+    uint8_t r = (uint8_t)(a - b);
+    cpu->registers.regs[rd] = r;
+    sr_sub8(cpu, a, b, 0, r);
 }
 
 void instr_subc(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    // TODO: Implement carry flag
-    cpu->registers.regs[rd] = cpu->registers.regs[rd] - cpu->registers.regs[rs]; // - carry
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t b = cpu->registers.regs[rs];
+    uint8_t borrow = (uint8_t)!cpu_flag_get(cpu, SR_C);
+    uint8_t r = (uint8_t)(a - b - borrow);
+    cpu->registers.regs[rd] = r;
+    sr_sub8(cpu, a, b, borrow, r);
 }
 
 void instr_and(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
     cpu->registers.regs[rd] &= cpu->registers.regs[rs];
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_or(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
     cpu->registers.regs[rd] |= cpu->registers.regs[rs];
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_xor(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
     cpu->registers.regs[rd] ^= cpu->registers.regs[rs];
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_not(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    cpu->registers.regs[rd] = ~cpu->registers.regs[rs];
+    cpu->registers.regs[rd] = (uint8_t)~cpu->registers.regs[rs];
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_shl(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    cpu->registers.regs[rd] = cpu->registers.regs[rs] << 1;
+    uint8_t v = cpu->registers.regs[rs];
+    cpu_flag_set(cpu, SR_C, (v & 0x80u) != 0);
+    cpu->registers.regs[rd] = (uint8_t)(v << 1);
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_shr(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    cpu->registers.regs[rd] = cpu->registers.regs[rs] >> 1;
+    uint8_t v = cpu->registers.regs[rs];
+    cpu_flag_set(cpu, SR_C, (v & 0x01u) != 0);
+    cpu->registers.regs[rd] = (uint8_t)(v >> 1);
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_rol(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
     uint8_t val = cpu->registers.regs[rs];
-    cpu->registers.regs[rd] = (val << 1) | (val >> 7);
+    cpu_flag_set(cpu, SR_C, (val & 0x80u) != 0);
+    cpu->registers.regs[rd] = (uint8_t)((val << 1) | (val >> 7));
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_ror(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
     uint8_t val = cpu->registers.regs[rs];
-    cpu->registers.regs[rd] = (val >> 1) | (val << 7);
+    cpu_flag_set(cpu, SR_C, (val & 0x01u) != 0);
+    cpu->registers.regs[rd] = (uint8_t)((val >> 1) | (val << 7));
+    sr_logic(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_cmp(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    // TODO: Implement flags based on rd - rs
-    (void)rd;
-    (void)rs;
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t b = cpu->registers.regs[rs];
+    uint8_t r = (uint8_t)(a - b);
+    sr_sub8(cpu, a, b, 0, r);
 }
 
 void instr_tst(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
-    // TODO: Implement flags based on rd & rs
-    (void)rd;
-    (void)rs;
+    uint8_t r = (uint8_t)(cpu->registers.regs[rd] & cpu->registers.regs[rs]);
+    sr_logic(cpu, r);
 }
 
 void instr_mov(CPU *cpu) {
     uint8_t rd = cpu->ir.bytes[1] & 0x0F;
     uint8_t rs = (cpu->ir.bytes[0] >> 4) & 0x0F;
     cpu->registers.regs[rd] = cpu->registers.regs[rs];
+    sr_set_zn(cpu, cpu->registers.regs[rd]);
 }
 
 void instr_neg(CPU *cpu) {
     uint8_t rd = (cpu->ir.bytes[1] >> 4) & 0x0F;
-    // TODO: Determine proper negation semantics
-    cpu->registers.regs[rd] = -cpu->registers.regs[rd];
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t r = (uint8_t)(0u - a);
+    cpu->registers.regs[rd] = r;
+    cpu_flag_set(cpu, SR_C, a == 0);
+    cpu_flag_set(cpu, SR_V, a == 0x80u);
+    sr_set_zn(cpu, r);
 }
 
 /* ===== I-type instruction implementation ===== */
@@ -136,6 +173,8 @@ void instr_ldi(CPU *cpu) {
         return;
     }
     cpu->registers.regs[rd] = imm;
+    sr_set_zn(cpu, imm);
+    cpu_flag_set(cpu, SR_V, 0);
 }
 
 /* ===== M-type instruction implementation ===== */
@@ -204,6 +243,75 @@ void instr_st(CPU *cpu) {
     }
 
     cpu->memory[(uint16_t)(base + offset)] = cpu->registers.regs[rs];
+}
+
+/* ===== BR-type instructions ===== */
+
+void instr_br_r(CPU *cpu) {
+
+    DoubleRegister ir = cpu->ir;
+
+    // extract the information
+    uint8_t absolute = (ir.high & 0x08) >> 3; // extract bit 11
+    uint8_t condition = ir.high & 0x07; // extract bits 10:8
+    DoubleRegister source = {
+        .low = cpu->registers.regs[(ir.low >> 4) & 0x0F],
+        .high = cpu->registers.regs[ir.low & 0x0F]
+    };
+    
+    // evaluate conditions
+    uint8_t take = 0;
+    switch (condition) {
+        case 0: take = 1; break;
+        case 1: take = cpu_flag_get(cpu, SR_Z); break;
+        case 2: take = (uint8_t)!cpu_flag_get(cpu, SR_Z); break;
+        case 3: take = cpu_flag_get(cpu, SR_C); break;
+        case 4: take = (uint8_t)!cpu_flag_get(cpu, SR_C); break;
+        case 5: take = cpu_flag_get(cpu, SR_N); break;
+        case 6: take = cpu_flag_get(cpu, SR_V); break;
+        default: take = 0; break;
+    }
+
+    if (!take)
+        return;
+
+    if (absolute)
+        cpu->registers.pc.value = source.value;
+    else
+        cpu->registers.pc.value = (uint16_t)(cpu->registers.pc.value + (int16_t)source.value);
+}
+
+/* ===== BI-type instructions ===== */
+
+void instr_br_i(CPU *cpu) {
+
+    DoubleRegister ir = cpu->ir;
+
+    // extract the information
+    uint8_t absolute = (ir.high & 0x08) >> 3; // extract bit 11
+    uint8_t condition = ir.high & 0x07; // extract bits 10:8
+
+    // evaluate conditions
+    uint8_t take = 0;
+    switch (condition) {
+        case 0: take = 1; break;
+        case 1: take = cpu_flag_get(cpu, SR_Z); break;
+        case 2: take = (uint8_t)!cpu_flag_get(cpu, SR_Z); break;
+        case 3: take = cpu_flag_get(cpu, SR_C); break;
+        case 4: take = (uint8_t)!cpu_flag_get(cpu, SR_C); break;
+        case 5: take = cpu_flag_get(cpu, SR_N); break;
+        case 6: take = cpu_flag_get(cpu, SR_V); break;
+        default: take = 0; break;
+    }
+
+    if (!take)
+        return;
+
+    // set the pc to the calculated address
+    if (absolute)
+        cpu->registers.pc.value = (uint16_t)ir.low;
+    else
+        cpu->registers.pc.value = (uint16_t)(cpu->registers.pc.value + (int16_t)(int8_t)ir.low);
 }
 
 /* ===== Initialization ===== */
