@@ -6,12 +6,14 @@
 #let title = "Atlas-8 ISA Specification"
 #let version = "1.0"
 #let date = "January 2026"
-#let author = "Atlas Project"
+#let author = "Jakob Flocke – Atlas Project"
 #let overview = "Complete instruction set architecture specification for the Atlas-8 processor, including the base instruction set and optional ISA extensions for caching and memory management."
 
 #doc-title(title, version: version, date: date, author: author, overview: overview)
 
 #outline()
+
+#pagebreak()
 
 = Overview
 
@@ -37,6 +39,8 @@ The Atlas-8 processor has the following key components:
 The Atlas-8 ISA includes a base instruction set and optional extensions for caching and memory management.
 The base instruction set consists of arithmetic, logical, data movement, control flow, and system instructions.
 Each instruction is 16 bits long and follows a fixed format based on it's type. There are 8 primary instruction formats: R-type, I-type, J-type, S-type, and U-type.
+
+#pagebreak()
 
 = Machine Model
 
@@ -145,7 +149,7 @@ $
       if y == 0 {
         gray.lighten(40%)
       },
-    [Field],  [Description],
+    [*Field*],  [*Description*],
     [15:12],  [type-field = 0000],
     [11:8],   [destination register (r_d)],
     [7:4],    [source register (r_s)],
@@ -163,7 +167,7 @@ This results in the following list of instructions:
       if y == 0 {
         gray.lighten(40%)
       },
-    [Opcode], [Mnemonic], [Description], [Operation],
+    [*Opcode*], [*Mnemonic*], [*Description*], [*Operation*],
     [0],      [ADD],      [Add],          [$r_d = r_d + r_s$],
     [1],      [ADDC],     [Add with Carry],        [$r_d = r_d + r_s + C$],
     [2],      [SUB],      [Subtract],      [$r_d = r_d - r_s$],
@@ -182,3 +186,231 @@ This results in the following list of instructions:
     [15],     [NEG],      [Negate],        [$r_d = -r_d$]
   )
 ]
+
+== I-type Instructions
+I-type instructions perform operations between a register and an 8-bit immediate value. Currently, only the ldi instruction is defined here.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0001],
+    [11:8],   [destination register (r_d)],
+    [7:0],    [immediate value (imm8)],
+  )
+]
+
+
+This results in the following instruction: \
+ldi rd, imm8
+
+== M-type Instructions
+M-type instructions handle memory load and store operations between registers and memory addresses.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0010 (load) or 0011 (store)],
+    [11:8],   [register designed / source],
+    [7:4],    [base register (r_b)],
+    [3:0],    [offset (4-bit signed immediate) or spr-code]
+  )
+]
+
+The field [3:0] holds a 4-bit signed offset with three reserved codes for special-purpose registers:
+- 0b1000: Temporary Register (TR)
+- 0b1001: Stack Pointer (SP)
+- 0b1010: Program Counter (PC)
+This results in the following possible immediate values for offset:
+- -5 to +7 (4-bit signed immediate)
+
+This results in the following list of instructions:
+- Load Instructions (type-field = 0010):
+  - ld rd, [rb]
+  - ld rd, [rb + offset]
+  - lds rd, [rb + spr]
+- Store Instructions (type-field = 0011):
+  - st rd, [rb]
+  - st rd, [rb + offset]
+  - sts rd, [rb + spr]
+
+== BI-type Instructions
+The BI-type instructions perform conditional branches based on the status flags and an 8-bit signed immediate offset.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0100 (branch immediate)],
+    [11:11],  [relative (0) / absolute (1)],
+    [10:8],   [condition code],
+    [7:0],    [offset (8-bit signed immediate)]
+  )
+]
+
+== BR-type Instructions
+The BR-type instructions perform conditional branches based on the status flags and an 8-bit or 16-bit signed register offset.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0101 (branch register)],
+    [11:11],  [relative (0) / absolute (1)],
+    [10:8],   [condition code],
+    [7:4],    [rs low],
+    [3:0],    [rs high]
+  )
+]
+
+This results in the following list of condition codes:
+- 000: always
+- 001: equal (Z=1)
+- 010: not equal (Z=0)
+- 011: carry set (C=1)
+- 100: carry clear (C=0)
+- 101: negative (N=1)
+- 110: positive (N=0)
+- 111: overflow (V=1)
+
+=== Resulting Instructions
+All of the following instructions use either an 8-bit signed immediate offset (BI-type) or a register pair as 16-bit signed offset (BR-type):
+
+#align(center)[
+  #table(
+    columns: 4,
+    align: (center, center, left, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Mnemonic*], [*Type*], [*Description*], [*Operation*],
+    [br],     [BI-type],    [Branch unconditionally], [PC = PC + offset],
+    [beq],    [BI-type],    [Branch if Equal],        [if Z=1 then PC = PC + offset],
+    [bne],    [BI-type],    [Branch if Not Equal],    [if Z=0 then PC = PC + offset],
+    [bcs],    [BI-type],    [Branch if Carry Set],    [if C=1 then PC = PC + offset],
+    [bcc],    [BI-type],    [Branch if Carry Clear],  [if C=0 then PC = PC + offset],
+    [bmi],    [BI-type],    [Branch if Negative],     [if N=1 then PC = PC + offset],
+    [bpl],    [BI-type],    [Branch if Positive],     [if N=0 then PC = PC + offset],
+    [bov],    [BI-type],    [Branch if Overflow],     [if V=1 then PC = PC + offset]
+  )
+]
+
+== S-type Instructions
+S-type instructions manage stack operations using the Stack Pointer (SP).
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0110],
+    [11:8],   [extended opcode (xop)],
+    [7:0],    [imm8 or register pair depending on xop]
+  )
+]
+
+That results in the following list of instructions:
+
+#align(center)[
+  #table(
+    columns: 4,
+    align: (center, center, left, left),
+    fill: (x, y) => if y == 0 { gray.lighten(40%) },
+    [*xop*], [*Mnemonic*],  [*Description*],            [*Operation*],
+    [0x0],    [push rs],    [Push register onto stack], [SP = SP - 2; MEM[SP] = rs],
+    [0x1],    [pop rd],     [Pop register from stack],  [rd = MEM[SP]; SP = SP + 2],
+    [0x2],    [subsp imm8], [allocate stack],           [SP = SP - imm8],
+    [0x3],    [subsp rs],   [allocate stack],           [SP = SP - register],
+    [0x4],    [addsp imm8], [deallocate stack],         [SP = SP + imm8],
+    [0x4],    [addsp rs],   [deallocate stack],         [SP = SP + register],
+  )
+]
+
+== X-type Instructions
+
+X-type instructions are used for extended and privileged operations, including system control, exception handling, cache control, and MMU management. All X-type instructions are *privileged* unless explicitly stated otherwise. Executing a privileged X-type instruction in user mode raises an illegal instruction exception.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) => if y == 0 { gray.lighten(40%) },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 0111],
+    [11:8],   [extended opcode (xop)],
+    [7:0],    [8-bit immediate or register operands depending on xop]
+  )
+]
+
+=== Encoding Conventions
+
+- Instructions with no operands ignore bits [7:0].
+- Instructions with one register use bits [7:4] for the register index.
+- Instructions with two registers use bits [7:4] = rs and [3:0] = rd.
+- All MMU and cache instructions are executed in supervisor mode only.
+
+=== Privilege and Exception Control
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
+  [0x0], [syscall], [Enter supervisor mode], [Trap to supervisor exception vector],
+  [0x1], [eret], [Return from exception], [Restore PC, SR, and previous privilege mode],
+  [0x2], [halt], [Halt processor], [Stop execution until reset or interrupt]
+)
+
+=== Memory Management Unit (MMU) Control
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
+  [0x4], [mmu_on], [Enable MMU], [Enable address translation and implicitly flush MMU state],
+  [0x5], [mmu_off], [Disable MMU], [Disable address translation],
+  [0x6], [mmuwr], [Write MMU entry], [MMU[rs] ← rd (packed physical page and flags)],
+  [0x7], [mmurd], [Read MMU entry], [rd ← MMU[rs]],
+  [0x8], [mmuflush], [Flush MMU translations], [Invalidate all cached translations],
+  [0x9], [mmupid], [Set active process ID], [PID ← rd]
+)
+
+=== Cache Control
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
+  [0xA], [icache_inv], [Invalidate instruction cache], [Discard all instruction cache contents],
+  [0xB], [dcache_inv], [Invalidate data cache], [Discard all data cache contents],
+  [0xC], [dcache_clean], [Clean data cache], [Write back dirty cache lines to memory],
+  [0xD], [cache_flush], [Flush all caches], [Clean and invalidate all cache levels]
+)

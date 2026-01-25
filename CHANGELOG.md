@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typst documentation module
 - Atlas 8 ISA - overview
 - Atlas 8 ISA - machine model
+- Atlas 8 ISA - instruction format
 - Comprehensive Nix flake.nix with multi-language dev environment (Rust, C/C++, Go, Python, Zig)
 
 ## [0.1.0] 2026-01-24
