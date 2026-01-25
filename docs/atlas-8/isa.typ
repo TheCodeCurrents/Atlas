@@ -188,7 +188,7 @@ This results in the following list of instructions:
 ]
 
 == I-type Instructions
-I-type instructions perform operations between a register and an 8-bit immediate value. Currently, only the ldi instruction is defined here.
+I-type instructions perform operations between a register and an 8-bit immediate value.
 
 #align(center)[
   #table(
@@ -199,15 +199,18 @@ I-type instructions perform operations between a register and an 8-bit immediate
         gray.lighten(40%)
       },
     [*Field*],  [*Description*],
-    [15:12],  [type-field = 0001],
+    [15:12],  [type-field = 0001 (ldi), 0010 (addi), 0011 (subi), 0100 (andi) or 0101 (ori)],
     [11:8],   [destination register (r_d)],
     [7:0],    [immediate value (imm8)],
   )
 ]
 
-
-This results in the following instruction: \
+This results in the following instructions: \
 ldi rd, imm8
+addi rd, imm8
+subi rd, imm8
+andi rd, imm8
+ori rd, imm8
 
 == M-type Instructions
 M-type instructions handle memory load and store operations between registers and memory addresses.
@@ -221,7 +224,7 @@ M-type instructions handle memory load and store operations between registers an
         gray.lighten(40%)
       },
     [*Field*],  [*Description*],
-    [15:12],  [type-field = 0010 (load) or 0011 (store)],
+    [15:12],  [type-field = 0110 (load) or 0111 (store)],
     [11:8],   [register designed / source],
     [7:4],    [base register (r_b)],
     [3:0],    [offset (4-bit signed immediate) or spr-code]
@@ -257,7 +260,7 @@ The BI-type instructions perform conditional branches based on the status flags 
         gray.lighten(40%)
       },
     [*Field*],  [*Description*],
-    [15:12],  [type-field = 0100 (branch immediate)],
+    [15:12],  [type-field = 1000 (branch immediate)],
     [11:11],  [relative (0) / absolute (1)],
     [10:8],   [condition code],
     [7:0],    [offset (8-bit signed immediate)]
@@ -276,7 +279,7 @@ The BR-type instructions perform conditional branches based on the status flags 
         gray.lighten(40%)
       },
     [*Field*],  [*Description*],
-    [15:12],  [type-field = 0101 (branch register)],
+    [15:12],  [type-field = 1001 (branch register)],
     [11:11],  [relative (0) / absolute (1)],
     [10:8],   [condition code],
     [7:4],    [rs low],
@@ -329,7 +332,7 @@ S-type instructions manage stack operations using the Stack Pointer (SP).
         gray.lighten(40%)
       },
     [*Field*],  [*Description*],
-    [15:12],  [type-field = 0110],
+    [15:12],  [type-field = 1010],
     [11:8],   [extended opcode (xop)],
     [7:0],    [imm8 or register pair depending on xop]
   )
@@ -344,13 +347,40 @@ That results in the following list of instructions:
     fill: (x, y) => if y == 0 { gray.lighten(40%) },
     [*xop*], [*Mnemonic*],  [*Description*],            [*Operation*],
     [0x0],    [push rs],    [Push register onto stack], [SP = SP - 2; MEM[SP] = rs],
-    [0x1],    [pop rd],     [Pop register from stack],  [rd = MEM[SP]; SP = SP + 2],
+    [0x1],    [pop rd],     [Pop register from stack],  [SP = SP + 2; rd = MEM[SP]],
     [0x2],    [subsp imm8], [allocate stack],           [SP = SP - imm8],
     [0x3],    [subsp rs],   [allocate stack],           [SP = SP - register],
     [0x4],    [addsp imm8], [deallocate stack],         [SP = SP + imm8],
-    [0x4],    [addsp rs],   [deallocate stack],         [SP = SP + register],
+    [0x5],    [addsp rs],   [deallocate stack],         [SP = SP + register],
   )
 ]
+
+== P-type Instructions
+P-type instructions perform Peek and Poke operations to read and write to an 8-bit unsigned offset relative to the SP.
+Adding this as a separate type is a tradeoff I was willing to make to increase the offset size from 4 to 8-bit unsigned immediates.
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [*Field*],  [*Description*],
+    [15:12],  [type-field = 1011 (peek) or 1100 (poke)],
+    [11:8],   [register source / destination],
+    [7:0],    [offset (8-bit unsigned immediate)]
+  )
+]
+
+This results in the following instructions:
+- peek rd, offset
+- poke rs, offset
+
+=== possible wishes
+
+I would liek to expand it to have a poke / peek with an 8-bit immediate, but where to put the register source / destination encoding?
 
 == X-type Instructions
 
@@ -362,7 +392,7 @@ X-type instructions are used for extended and privileged operations, including s
     align: (center, left),
     fill: (x, y) => if y == 0 { gray.lighten(40%) },
     [*Field*],  [*Description*],
-    [15:12],  [type-field = 0111],
+    [15:12],  [type-field = 1101],
     [11:8],   [extended opcode (xop)],
     [7:0],    [8-bit immediate or register operands depending on xop]
   )
@@ -413,4 +443,22 @@ X-type instructions are used for extended and privileged operations, including s
   [0xB], [dcache_inv], [Invalidate data cache], [Discard all data cache contents],
   [0xC], [dcache_clean], [Clean data cache], [Write back dirty cache lines to memory],
   [0xD], [cache_flush], [Flush all caches], [Clean and invalidate all cache levels]
+)
+
+#pagebreak()
+
+= Instruction Set Summary
+
+This section provides a summary of all instructions defined in the Atlas-8 ISA.
+
+#table(
+  columns: 4,
+  align: (center, center, left, left),
+  fill: (x, y) => if y == 0 { gray.lighten(40%) },
+  [*Mnemonic*], [*Type*], [*Description*], [*Operation*],
+  // A-type Instructions
+  [ADD], [A-type], [Add], [$r_d = r_d + r_s$],
+  [ADDC], [A-type], [Add with Carry], [$r_d = r_d + r_s + C$],
+  [SUB], [A-type], [Subtract], [$r_d = r_d - r_s$],
+  [SUBC], [A-type], [Subtract with Carry], [$r_d = r_d - r_s - C$],
 )
