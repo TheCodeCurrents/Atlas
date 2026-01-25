@@ -37,9 +37,48 @@ void cpu_init(CPU *cpu, uint32_t memory_size) {
 
 void cpu_step(CPU *cpu)
 {
+    // Fetch: Read 16-bit instruction (little-endian)
     cpu->ir.bytes[0] = cpu->memory[cpu->registers.pc.value++];
     cpu->ir.bytes[1] = cpu->memory[cpu->registers.pc.value++];
 
-    // InstrFn fn = atlas_dispatch[??];
-    // fn(cpu);
+    // Decode: Extract type field (bits 15:12)
+    // Assuming little-endian: byte[1] contains bits 15:8, byte[0] contains bits 7:0
+    uint8_t type_field = (cpu->ir.bytes[1] >> 4) & 0x0F;
+
+    // Execute: Dispatch based on type
+    switch (type_field) {
+        case INSTR_TYPE_A: {
+            // A-type: Get opcode from bits 3:0
+            uint8_t opcode = cpu->ir.bytes[0] & 0x0F;
+            InstrFn fn = atlas_dispatch_a[opcode];
+            fn(cpu);
+            break;
+        }
+        case INSTR_TYPE_I:
+            instr_ldi(cpu);
+            break;
+        case INSTR_TYPE_M_0:
+            instr_ld(cpu);
+            break;
+        case INSTR_TYPE_M_1:
+            instr_st(cpu);
+            break;
+        case INSTR_TYPE_BI:
+            // TODO: Implement BI-type instructions
+            instr_illegal(cpu);
+            break;
+        case INSTR_TYPE_BR:
+            // TODO: Implement BR-type instructions
+            instr_illegal(cpu);
+            break;
+        case INSTR_TYPE_S_0:
+        case INSTR_TYPE_S_1:
+            // TODO: Implement S-type instructions
+            instr_illegal(cpu);
+            break;
+        default:
+            // Extended or undefined instruction types
+            instr_illegal(cpu);
+            break;
+    }
 }
