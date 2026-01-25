@@ -116,3 +116,69 @@ The Atlas-8 supports two privilege levels:
 
 Mode transitions occur through exception handling and return-from-exception instructions.
 
+#pagebreak()
+
+= Instruction Format
+
+The instructions are encoded in a fixed length 16-bit format with 7 primary types:
+- A-type: Arithmetic and Logical Instructions
+- I-type: Immediate Instructions
+- M-type: Memory Instructions
+- BI-type: Branch Immediate Instructions
+- BR-type: Branch Register Instructions
+- S-type: Stack Instructions
+- X-type: Extended Instructions
+
+The type is always determined by its first 4 bits called the type field.
+
+== A-type Instructions
+The A-type instructions perform arithmetic and logical operations between a source and a destination register.
+$
+  r_d = r_d times r_s
+$
+
+#align(center)[
+  #table(
+    columns: 2,
+    align: (center, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [Field],  [Description],
+    [15:12],  [type-field = 0000],
+    [11:8],   [destination register (r_d)],
+    [7:4],    [source register (r_s)],
+    [3:0],    [operation code (opcode) for arithmetic/logical operation]
+  )
+]
+
+This results in the following list of instructions:
+
+#align(center)[
+  #table(
+    columns: 4,
+    align: (center, center, left, left),
+    fill: (x, y) =>
+      if y == 0 {
+        gray.lighten(40%)
+      },
+    [Opcode], [Mnemonic], [Description], [Operation],
+    [0],      [ADD],      [Add],          [$r_d = r_d + r_s$],
+    [1],      [ADDC],     [Add with Carry],        [$r_d = r_d + r_s + C$],
+    [2],      [SUB],      [Subtract],      [$r_d = r_d - r_s$],
+    [3],      [SUBC],     [Subtract with Carry],   [$r_d = r_d - r_s - C$],
+    [4],      [AND],      [Bitwise AND],    [$r_d = r_d and r_s$],
+    [5],      [OR],       [Bitwise OR],     [$r_d = r_d or r_s$],
+    [6],      [XOR],      [Bitwise XOR],    [$r_d = r_d xor r_s$],
+    [7],      [NOT],      [Bitwise NOT],    [$r_d = not r_s$],
+    [8],      [SHL],      [Shift Left],     [$r_d = r_s << 1$],
+    [9],      [SHR],      [Shift Right],    [$r_d = r_s >> 1$],
+    [10],     [ROL],      [Rotate Left],    [$r_d = (r_s << 1) | (r_s >> 7)$],
+    [11],     [ROR],      [Rotate Right],   [$r_d = (r_s >> 1) | (r_s << 7)$],
+    [12],     [CMP],      [Compare],        [Set flags based on $r_d - r_s$],
+    [13],     [TST],      [Test],          [Sets flags based on $r_d and r_s$],
+    [14],     [MOV],      [Move],          [$r_d = r_s$],
+    [15],     [NEG],      [Negate],        [$r_d = -r_d$]
+  )
+]
