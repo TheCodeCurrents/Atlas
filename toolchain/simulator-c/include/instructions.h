@@ -3,16 +3,21 @@
 #include "cpu.h"
 
 /// @brief Instruction type field values (bits 15:12)
-/// Note: Some instruction types occupy multiple type field values
 typedef enum {
-    INSTR_TYPE_A = 0x0,      // Arithmetic and Logical (type field = 0)
-    INSTR_TYPE_I = 0x1,      // Immediate (type field = 1)
-    INSTR_TYPE_M_0 = 0x2,    // Memory (type field = 2 or 3)
-    INSTR_TYPE_M_1 = 0x3,
-    INSTR_TYPE_BI = 0x4,     // Branch Immediate (type field = 4)
-    INSTR_TYPE_BR = 0x5,     // Branch Register (type field = 5)
-    INSTR_TYPE_S_0 = 0x6,    // Stack (type field = 6 or 7)
-    INSTR_TYPE_S_1 = 0x7
+    INSTR_TYPE_A = 0x0,           // Arithmetic and Logical
+    INSTR_TYPE_I_LDI = 0x1,       // Load Immediate
+    INSTR_TYPE_I_ADDI = 0x2,      // Add Immediate
+    INSTR_TYPE_I_SUBI = 0x3,      // Subtract Immediate
+    INSTR_TYPE_I_ANDI = 0x4,      // AND Immediate
+    INSTR_TYPE_I_ORI = 0x5,       // OR Immediate
+    INSTR_TYPE_M_LD = 0x6,        // Memory Load
+    INSTR_TYPE_M_ST = 0x7,        // Memory Store
+    INSTR_TYPE_BI = 0x8,          // Branch Immediate
+    INSTR_TYPE_BR = 0x9,          // Branch Register
+    INSTR_TYPE_S = 0xA,           // Stack Operations (xop in bits 11:8)
+    INSTR_TYPE_P_PEEK = 0xB,      // Peek (read from SP + offset)
+    INSTR_TYPE_P_POKE = 0xC,      // Poke (write to SP + offset)
+    INSTR_TYPE_X = 0xD            // Extended (privileged, xop in bits 11:8)
 } InstrType;
 
 /// @brief A-type instruction opcodes (bits 3:0)
@@ -31,10 +36,37 @@ typedef enum {
     A_OP_ROR = 11,
     A_OP_CMP = 12,
     A_OP_TST = 13,
-    A_OP_NEG = 14,
-    A_OP_MOV = 15,
+    A_OP_MOV = 14,
+    A_OP_NEG = 15,
     A_OP_COUNT = 16
 } ATypeOpcode;
+
+/// @brief S-type extended opcodes (bits 11:8)
+typedef enum {
+    S_OP_PUSH = 0x0,    // Push register onto stack
+    S_OP_POP = 0x1,     // Pop register from stack
+    S_OP_SUBSP_IMM = 0x2, // Allocate stack (immediate)
+    S_OP_SUBSP_REG = 0x3, // Allocate stack (register)
+    S_OP_ADDSP_IMM = 0x4, // Deallocate stack (immediate)
+    S_OP_ADDSP_REG = 0x5   // Deallocate stack (register)
+} STypeOpcode;
+
+/// @brief X-type extended opcodes (bits 11:8)
+typedef enum {
+    X_OP_SYSCALL = 0x0,     // System call
+    X_OP_ERET = 0x1,        // Return from exception
+    X_OP_HALT = 0x2,        // Halt processor
+    X_OP_MMU_ON = 0x4,      // Enable MMU
+    X_OP_MMU_OFF = 0x5,     // Disable MMU
+    X_OP_MMUWR = 0x6,       // Write MMU entry
+    X_OP_MMURD = 0x7,       // Read MMU entry
+    X_OP_MMUFLUSH = 0x8,    // Flush MMU translations
+    X_OP_MMUPID = 0x9,      // Set active process ID
+    X_OP_ICACHE_INV = 0xA,  // Invalidate instruction cache
+    X_OP_DCACHE_INV = 0xB,  // Invalidate data cache
+    X_OP_DCACHE_CLEAN = 0xC, // Clean data cache
+    X_OP_CACHE_FLUSH = 0xD  // Flush all caches
+} XTypeOpcode;
 
 /// @brief Instruction function type
 typedef void (*InstrFn)(CPU *cpu);
@@ -68,25 +100,45 @@ void instr_mov(CPU *cpu);
 void instr_neg(CPU *cpu);
 
 /* I-type instructions */
-void instr_ldi(CPU *cpu);
+void instr_ldi(CPU *cpu);   // Load Immediate
+void instr_addi(CPU *cpu);  // Add Immediate
+void instr_subi(CPU *cpu);  // Subtract Immediate
+void instr_andi(CPU *cpu);  // AND Immediate
+void instr_ori(CPU *cpu);   // OR Immediate
 
 /* M-type instructions */
-void instr_ld(CPU *cpu); // load from address in register
-void instr_st(CPU *cpu); // store to address in register
+void instr_ld(CPU *cpu);    // Load from memory
+void instr_st(CPU *cpu);    // Store to memory
 
 /* BI-type instructions */
-void instr_br_i(CPU *cpu);
+void instr_br_i(CPU *cpu);  // Branch with immediate offset
 
 /* BR-type instructions */
-void instr_br_r(CPU *cpu);
+void instr_br_r(CPU *cpu);  // Branch with register offset
 
-/* S-type instructions */
-void instr_push(CPU *cpu);
-void instr_pop(CPU *cpu);
-void instr_call(CPU *cpu);
-void instr_ret(CPU *cpu);
+/* S-type instructions (stack operations) */
+void instr_push(CPU *cpu);        // Push register onto stack
+void instr_pop(CPU *cpu);         // Pop register from stack
+void instr_subsp_imm(CPU *cpu);   // Allocate stack space (immediate)
+void instr_subsp_reg(CPU *cpu);   // Allocate stack space (register)
+void instr_addsp_imm(CPU *cpu);   // Deallocate stack space (immediate)
+void instr_addsp_reg(CPU *cpu);   // Deallocate stack space (register)
 
-/* Extended instructions can be added here */
-void instr_nop(CPU *cpu);
-void instr_halt(CPU *cpu);
-void instr_syscall(CPU *cpu);
+/* P-type instructions (peek/poke - SP relative access) */
+void instr_peek(CPU *cpu);  // Read from [SP + offset]
+void instr_poke(CPU *cpu);  // Write to [SP + offset]
+
+/* X-type instructions (extended/privileged operations) */
+void instr_syscall(CPU *cpu);     // System call
+void instr_eret(CPU *cpu);        // Return from exception
+void instr_halt(CPU *cpu);        // Halt processor
+void instr_mmu_on(CPU *cpu);      // Enable MMU
+void instr_mmu_off(CPU *cpu);     // Disable MMU
+void instr_mmuwr(CPU *cpu);       // Write MMU entry
+void instr_mmurd(CPU *cpu);       // Read MMU entry
+void instr_mmuflush(CPU *cpu);    // Flush MMU translations
+void instr_mmupid(CPU *cpu);      // Set active process ID
+void instr_icache_inv(CPU *cpu);  // Invalidate instruction cache
+void instr_dcache_inv(CPU *cpu);  // Invalidate data cache
+void instr_dcache_clean(CPU *cpu); // Clean data cache
+void instr_cache_flush(CPU *cpu); // Flush all caches

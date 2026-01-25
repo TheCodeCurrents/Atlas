@@ -55,13 +55,25 @@ void cpu_step(CPU *cpu)
             fn(cpu);
             break;
         }
-        case INSTR_TYPE_I:
+        case INSTR_TYPE_I_LDI:
             instr_ldi(cpu);
             break;
-        case INSTR_TYPE_M_0:
+        case INSTR_TYPE_I_ADDI:
+            instr_addi(cpu);
+            break;
+        case INSTR_TYPE_I_SUBI:
+            instr_subi(cpu);
+            break;
+        case INSTR_TYPE_I_ANDI:
+            instr_andi(cpu);
+            break;
+        case INSTR_TYPE_I_ORI:
+            instr_ori(cpu);
+            break;
+        case INSTR_TYPE_M_LD:
             instr_ld(cpu);
             break;
-        case INSTR_TYPE_M_1:
+        case INSTR_TYPE_M_ST:
             instr_st(cpu);
             break;
         case INSTR_TYPE_BI:
@@ -70,13 +82,91 @@ void cpu_step(CPU *cpu)
         case INSTR_TYPE_BR:
             instr_br_r(cpu);
             break;
-        case INSTR_TYPE_S_0:
-        case INSTR_TYPE_S_1:
-            // TODO: Implement S-type instructions
-            instr_illegal(cpu);
+        case INSTR_TYPE_S: {
+            // S-type: Decode extended opcode from bits 11:8
+            uint8_t xop = (cpu->ir.bytes[1] >> 0) & 0x0F;  // Extract bits 11:8 as xop (in position 0-3 of high byte after removing type field)
+            switch (xop) {
+                case S_OP_PUSH:
+                    instr_push(cpu);
+                    break;
+                case S_OP_POP:
+                    instr_pop(cpu);
+                    break;
+                case S_OP_SUBSP_IMM:
+                    instr_subsp_imm(cpu);
+                    break;
+                case S_OP_SUBSP_REG:
+                    instr_subsp_reg(cpu);
+                    break;
+                case S_OP_ADDSP_IMM:
+                    instr_addsp_imm(cpu);
+                    break;
+                case S_OP_ADDSP_REG:
+                    instr_addsp_reg(cpu);
+                    break;
+                default:
+                    instr_illegal(cpu);
+                    break;
+            }
             break;
+        }
+        case INSTR_TYPE_P_PEEK:
+            instr_peek(cpu);
+            break;
+        case INSTR_TYPE_P_POKE:
+            instr_poke(cpu);
+            break;
+        case INSTR_TYPE_X: {
+            // X-type: Decode extended opcode from bits 11:8
+            uint8_t xop = (cpu->ir.bytes[1] >> 0) & 0x0F;  // Extract bits 11:8 as xop
+            switch (xop) {
+                case X_OP_SYSCALL:
+                    instr_syscall(cpu);
+                    break;
+                case X_OP_ERET:
+                    instr_eret(cpu);
+                    break;
+                case X_OP_HALT:
+                    instr_halt(cpu);
+                    break;
+                case X_OP_MMU_ON:
+                    instr_mmu_on(cpu);
+                    break;
+                case X_OP_MMU_OFF:
+                    instr_mmu_off(cpu);
+                    break;
+                case X_OP_MMUWR:
+                    instr_mmuwr(cpu);
+                    break;
+                case X_OP_MMURD:
+                    instr_mmurd(cpu);
+                    break;
+                case X_OP_MMUFLUSH:
+                    instr_mmuflush(cpu);
+                    break;
+                case X_OP_MMUPID:
+                    instr_mmupid(cpu);
+                    break;
+                case X_OP_ICACHE_INV:
+                    instr_icache_inv(cpu);
+                    break;
+                case X_OP_DCACHE_INV:
+                    instr_dcache_inv(cpu);
+                    break;
+                case X_OP_DCACHE_CLEAN:
+                    instr_dcache_clean(cpu);
+                    break;
+                case X_OP_CACHE_FLUSH:
+                    instr_cache_flush(cpu);
+                    break;
+                default:
+                    instr_illegal(cpu);
+                    break;
+            }
+            break;
+        }
         default:
-            // Extended or undefined instruction types
+            // Undefined instruction type
             instr_illegal(cpu);
             break;
     }

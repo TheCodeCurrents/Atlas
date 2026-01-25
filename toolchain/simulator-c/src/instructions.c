@@ -177,6 +177,38 @@ void instr_ldi(CPU *cpu) {
     cpu_flag_set(cpu, SR_V, 0);
 }
 
+void instr_addi(CPU *cpu) {
+    uint8_t rd = cpu->ir.bytes[1] & 0x0F;
+    uint8_t imm = cpu->ir.bytes[0];
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t r = (uint8_t)(a + imm);
+    cpu->registers.regs[rd] = r;
+    sr_add8(cpu, a, imm, 0, r);
+}
+
+void instr_subi(CPU *cpu) {
+    uint8_t rd = cpu->ir.bytes[1] & 0x0F;
+    uint8_t imm = cpu->ir.bytes[0];
+    uint8_t a = cpu->registers.regs[rd];
+    uint8_t r = (uint8_t)(a - imm);
+    cpu->registers.regs[rd] = r;
+    sr_sub8(cpu, a, imm, 0, r);
+}
+
+void instr_andi(CPU *cpu) {
+    uint8_t rd = cpu->ir.bytes[1] & 0x0F;
+    uint8_t imm = cpu->ir.bytes[0];
+    cpu->registers.regs[rd] &= imm;
+    sr_logic(cpu, cpu->registers.regs[rd]);
+}
+
+void instr_ori(CPU *cpu) {
+    uint8_t rd = cpu->ir.bytes[1] & 0x0F;
+    uint8_t imm = cpu->ir.bytes[0];
+    cpu->registers.regs[rd] |= imm;
+    sr_logic(cpu, cpu->registers.regs[rd]);
+}
+
 /* ===== M-type instruction implementation ===== */
 
 void instr_ld(CPU *cpu) {
@@ -312,6 +344,138 @@ void instr_br_i(CPU *cpu) {
         cpu->registers.pc.value = (uint16_t)ir.low;
     else
         cpu->registers.pc.value = (uint16_t)(cpu->registers.pc.value + (int16_t)(int8_t)ir.low);
+}
+
+/* ===== S-type instructions (Stack Operations) ===== */
+
+void instr_push(CPU *cpu) {
+    uint8_t rs = cpu->ir.bytes[1] & 0x0F;
+    cpu->registers.sp.value -= 2;  // Allocate 2 bytes on stack
+    cpu->memory[cpu->registers.sp.value] = cpu->registers.regs[rs];
+    cpu->memory[cpu->registers.sp.value + 1] = 0;  // 16-bit push (upper byte is 0 if rs is 8-bit)
+}
+
+void instr_pop(CPU *cpu) {
+    uint8_t rd = cpu->ir.bytes[1] & 0x0F;
+    cpu->registers.regs[rd] = cpu->memory[cpu->registers.sp.value];
+    cpu->registers.sp.value += 2;  // Deallocate 2 bytes from stack
+}
+
+void instr_subsp_imm(CPU *cpu) {
+    uint8_t imm = cpu->ir.bytes[0];
+    cpu->registers.sp.value -= imm;
+}
+
+void instr_subsp_reg(CPU *cpu) {
+    uint8_t rs = cpu->ir.bytes[1] & 0x0F;
+    cpu->registers.sp.value = (uint16_t)(cpu->registers.sp.value - cpu->registers.regs[rs]);
+}
+
+void instr_addsp_imm(CPU *cpu) {
+    uint8_t imm = cpu->ir.bytes[0];
+    cpu->registers.sp.value += imm;
+}
+
+void instr_addsp_reg(CPU *cpu) {
+    uint8_t rs = cpu->ir.bytes[1] & 0x0F;
+    cpu->registers.sp.value = (uint16_t)(cpu->registers.sp.value + cpu->registers.regs[rs]);
+}
+
+/* ===== P-type instructions (Peek/Poke - SP Relative Access) ===== */
+
+void instr_peek(CPU *cpu) {
+    uint8_t rd = cpu->ir.bytes[1] & 0x0F;
+    uint8_t offset = cpu->ir.bytes[0];
+    uint16_t addr = (uint16_t)(cpu->registers.sp.value + offset);
+    cpu->registers.regs[rd] = cpu->memory[addr];
+    sr_set_zn(cpu, cpu->registers.regs[rd]);
+}
+
+void instr_poke(CPU *cpu) {
+    uint8_t rs = cpu->ir.bytes[1] & 0x0F;
+    uint8_t offset = cpu->ir.bytes[0];
+    uint16_t addr = (uint16_t)(cpu->registers.sp.value + offset);
+    cpu->memory[addr] = cpu->registers.regs[rs];
+}
+
+/* ===== X-type instructions (Extended/Privileged Operations) ===== */
+
+void instr_syscall(CPU *cpu) {
+    // TODO: Implement system call trap mechanism
+    (void)cpu;
+    fprintf(stderr, "SYSCALL: Not yet implemented\n");
+}
+
+void instr_eret(CPU *cpu) {
+    // TODO: Implement exception return (restore PC, SR, privilege mode)
+    (void)cpu;
+    fprintf(stderr, "ERET: Not yet implemented\n");
+}
+
+void instr_halt(CPU *cpu) {
+    // TODO: Implement halt mechanism
+    (void)cpu;
+    fprintf(stderr, "HALT: Processor halted\n");
+}
+
+void instr_mmu_on(CPU *cpu) {
+    // TODO: Implement MMU enable
+    (void)cpu;
+    fprintf(stderr, "MMU_ON: Not yet implemented\n");
+}
+
+void instr_mmu_off(CPU *cpu) {
+    // TODO: Implement MMU disable
+    (void)cpu;
+    fprintf(stderr, "MMU_OFF: Not yet implemented\n");
+}
+
+void instr_mmuwr(CPU *cpu) {
+    // TODO: Implement MMU entry write
+    (void)cpu;
+    fprintf(stderr, "MMUWR: Not yet implemented\n");
+}
+
+void instr_mmurd(CPU *cpu) {
+    // TODO: Implement MMU entry read
+    (void)cpu;
+    fprintf(stderr, "MMURD: Not yet implemented\n");
+}
+
+void instr_mmuflush(CPU *cpu) {
+    // TODO: Implement MMU flush
+    (void)cpu;
+    fprintf(stderr, "MMUFLUSH: Not yet implemented\n");
+}
+
+void instr_mmupid(CPU *cpu) {
+    // TODO: Implement MMU PID set
+    (void)cpu;
+    fprintf(stderr, "MMUPID: Not yet implemented\n");
+}
+
+void instr_icache_inv(CPU *cpu) {
+    // TODO: Implement instruction cache invalidate
+    (void)cpu;
+    fprintf(stderr, "ICACHE_INV: Not yet implemented\n");
+}
+
+void instr_dcache_inv(CPU *cpu) {
+    // TODO: Implement data cache invalidate
+    (void)cpu;
+    fprintf(stderr, "DCACHE_INV: Not yet implemented\n");
+}
+
+void instr_dcache_clean(CPU *cpu) {
+    // TODO: Implement data cache clean
+    (void)cpu;
+    fprintf(stderr, "DCACHE_CLEAN: Not yet implemented\n");
+}
+
+void instr_cache_flush(CPU *cpu) {
+    // TODO: Implement cache flush all
+    (void)cpu;
+    fprintf(stderr, "CACHE_FLUSH: Not yet implemented\n");
 }
 
 /* ===== Initialization ===== */
