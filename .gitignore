@@ -3,6 +3,7 @@
 build/
 output/
 dist/
+target/
 
 # Typst cache
 .typst-cache/
