@@ -384,7 +384,9 @@ I would liek to expand it to have a poke / peek with an 8-bit immediate, but whe
 
 == X-type Instructions
 
-X-type instructions are used for extended and privileged operations, including system control, exception handling, cache control, and MMU management. All X-type instructions are *privileged* unless explicitly stated otherwise. Executing a privileged X-type instruction in user mode raises an illegal instruction exception.
+X-type instructions are used for privileged operations including system control, exception handling, and cache management. All X-type instructions are *privileged*; executing an X-type instruction in user mode raises an illegal instruction exception.
+
+The MMU is controlled entirely through memory-mapped registers rather than special instructions, providing a clean separation between cache control and memory management.
 
 #align(center)[
   #table(
@@ -393,56 +395,31 @@ X-type instructions are used for extended and privileged operations, including s
     fill: (x, y) => if y == 0 { gray.lighten(40%) },
     [*Field*],  [*Description*],
     [15:12],  [type-field = 1101],
-    [11:8],   [extended opcode (xop)],
-    [7:0],    [8-bit immediate or register operands depending on xop]
+    [11:8],   [operation code (opcode)],
+    [7:0],    [ignored for most instructions; used for 8-bit immediate on SYSC]
   )
 ]
 
 === Encoding Conventions
 
-- Instructions with no operands ignore bits [7:0].
-- Instructions with one register use bits [7:4] for the register index.
-- Instructions with two registers use bits [7:4] = rs and [3:0] = rd.
-- All MMU and cache instructions are executed in supervisor mode only.
+- Most X-type instructions have no operands and ignore bits [7:0].
+- SYSC uses bits [7:0] as an 8-bit syscall number.
+- Cache control instructions (ICINV, DCINV, DCCLEAN, FLUSH) have no operands.
 
-=== Privilege and Exception Control
-
-#table(
-  columns: 4,
-  align: (center, center, left, left),
-  fill: (x, y) => if y == 0 { gray.lighten(40%) },
-  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
-  [0x0], [syscall], [Enter supervisor mode], [Trap to supervisor exception vector],
-  [0x1], [eret], [Return from exception], [Restore PC, SR, and previous privilege mode],
-  [0x2], [halt], [Halt processor], [Stop execution until reset or interrupt]
-)
-
-=== Memory Management Unit (MMU) Control
+=== X-type Instructions
 
 #table(
   columns: 4,
   align: (center, center, left, left),
   fill: (x, y) => if y == 0 { gray.lighten(40%) },
-  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
-  [0x4], [mmu_on], [Enable MMU], [Enable address translation and implicitly flush MMU state],
-  [0x5], [mmu_off], [Disable MMU], [Disable address translation],
-  [0x6], [mmuwr], [Write MMU entry], [MMU[rs] ← rd (packed physical page and flags)],
-  [0x7], [mmurd], [Read MMU entry], [rd ← MMU[rs]],
-  [0x8], [mmuflush], [Flush MMU translations], [Invalidate all cached translations],
-  [0x9], [mmupid], [Set active process ID], [PID ← rd]
-)
-
-=== Cache Control
-
-#table(
-  columns: 4,
-  align: (center, center, left, left),
-  fill: (x, y) => if y == 0 { gray.lighten(40%) },
-  [*xop*], [*Mnemonic*], [*Description*], [*Operation*],
-  [0xA], [icache_inv], [Invalidate instruction cache], [Discard all instruction cache contents],
-  [0xB], [dcache_inv], [Invalidate data cache], [Discard all data cache contents],
-  [0xC], [dcache_clean], [Clean data cache], [Write back dirty cache lines to memory],
-  [0xD], [cache_flush], [Flush all caches], [Clean and invalidate all cache levels]
+  [*Opcode*], [*Mnemonic*], [*Description*], [*Operation*],
+  [0x0], [sysc], [Software Syscall], [Trap to supervisor with syscall number in bits [7:0]],
+  [0x1], [eret], [Return from Exception], [Restore PC, SR, and previous privilege mode],
+  [0x2], [halt], [Halt Processor], [Stop execution until reset or interrupt],
+  [0x3], [icinv], [Invalidate Instruction Cache], [Discard all instruction cache contents],
+  [0x4], [dcinv], [Invalidate Data Cache], [Discard all data cache contents],
+  [0x5], [dcclean], [Clean Data Cache], [Write back all dirty data cache lines to memory],
+  [0x6], [flush], [Flush Pipeline and Caches], [Clean and invalidate all cache levels and pipeline]
 )
 
 #pagebreak()
@@ -509,19 +486,13 @@ This section provides a summary of all instructions defined in the Atlas-8 ISA.
   [peek], [P-type], [Peek from stack], [rd = MEM[SP + offset]],
   [poke], [P-type], [Poke to stack], [MEM[SP + offset] = rs],
   // X-type Instructions
-  [syscall], [X-type], [Enter supervisor mode], [Trap to supervisor exception vector],
+  [sysc], [X-type], [Software Syscall], [Trap to supervisor with syscall number],
   [eret], [X-type], [Return from exception], [Restore PC, SR, and previous privilege mode],
   [halt], [X-type], [Halt processor], [Stop execution until reset or interrupt],
-  [mmu_on], [X-type], [Enable MMU], [Enable address translation and implicitly flush MMU state],
-  [mmu_off], [X-type], [Disable MMU], [Disable address translation],
-  [mmuwr], [X-type], [Write MMU entry], [MMU[rs] ← rd (packed physical page and flags)],
-  [mmurd], [X-type], [Read MMU entry], [rd ← MMU[rs]],
-  [mmuflush], [X-type], [Flush MMU translations], [Invalidate all cached translations],
-  [mmupid], [X-type], [Set active process ID], [PID ← rd],
-  [icache_inv], [X-type], [Invalidate instruction cache], [Discard all instruction cache contents],
-  [dcache_inv], [X-type], [Invalidate data cache], [Discard all data cache contents],
-  [dcache_clean], [X-type], [Clean data cache], [Write back dirty cache lines to memory],
-  [cache_flush], [X-type], [Flush all caches], [Clean and invalidate all cache levels],
+  [icinv], [X-type], [Invalidate instruction cache], [Discard all instruction cache contents],
+  [dcinv], [X-type], [Invalidate data cache], [Discard all data cache contents],
+  [dcclean], [X-type], [Clean data cache], [Write back dirty cache lines to memory],
+  [flush], [X-type], [Flush all caches], [Clean and invalidate all cache levels],
 
   // virtual instructions
   [nop], [virtual], [No Operation], [r0 = r0 + r0],
