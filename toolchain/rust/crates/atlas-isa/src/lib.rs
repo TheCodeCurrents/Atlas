@@ -4,7 +4,6 @@
 //! This crate provides type definitions and utilities for the Atlas instruction set architecture.
 //! It includes instruction definitions, opcode mappings, and operand specifications.
 
-pub mod helpers;
 pub mod instruction;
 pub mod mnemonics;
 pub mod opcode;
