@@ -1,0 +1,27 @@
+/// 8-bit register identifier
+pub type RegisterIdentifier = u8;
+
+/// Pair of registers (high and low)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RegisterPairIdentifier {
+    pub high: RegisterIdentifier,
+    pub low: RegisterIdentifier,
+}
+
+/// Memory offset specification
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MOffset {
+    /// 8-bit immediate offset
+    Offset8(u8),
+    /// Register offset
+    SR(RegisterIdentifier),
+}
+
+/// Operand for extended (X-type) instructions
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum XOperand {
+    None,
+    Immediate(u8),
+    Register(RegisterIdentifier),
+    Registers(RegisterIdentifier, RegisterIdentifier),
+}
