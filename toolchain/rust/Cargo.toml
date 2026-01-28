@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "crates/atlas-isa",
+]
+
+[dependencies]
