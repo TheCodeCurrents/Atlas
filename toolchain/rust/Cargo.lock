@@ -9,3 +9,17 @@ version = "0.1.0"
 [[package]]
 name = "atlas-isa"
 version = "0.1.0"
+
+[[package]]
+name = "atlas-lexer"
+version = "0.1.0"
+dependencies = [
+ "atlas-isa",
+]
+
+[[package]]
+name = "atlas-parser"
+version = "0.1.0"
+dependencies = [
+ "atlas-isa",
+]

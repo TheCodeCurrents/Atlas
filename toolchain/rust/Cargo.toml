@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "crates/atlas-isa",
+    "crates/atlas-lexer",
+    "crates/atlas-parser",
     "cli/atlas",
 ]
 
