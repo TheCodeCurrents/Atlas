@@ -1,7 +1,7 @@
 
 mod lexer;
-mod parser;
 mod token;
+mod error;
 
 pub use lexer::Lexer;
 pub use token::Token;
