@@ -65,6 +65,17 @@ pub enum Instruction {
     NOP,
 }
 
+pub enum InstructionFormat {
+    A,
+    I,
+    M,
+    B,
+    S,
+    P,
+    X,
+    Virtual
+}
+
 /// Resolved instruction with all operands specified, format is optimized for encoding and simulation
 /// ! Note: Not every possible combination of fields is valid for a given instruction.
 #[derive(Debug, Clone)]

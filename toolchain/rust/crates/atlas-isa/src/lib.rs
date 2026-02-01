@@ -8,6 +8,7 @@ pub mod instruction;
 pub mod mnemonics;
 pub mod opcode;
 pub mod operands;
+pub mod encoder;
 
 // Re-export commonly used types
 pub use instruction::{Instruction, ResolvedInstruction};

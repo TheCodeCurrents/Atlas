@@ -1,4 +1,3 @@
-
 use crate::instructions::{Instruction, BranchOffset};
 
 pub struct Encoder {

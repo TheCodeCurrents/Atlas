@@ -5,21 +5,26 @@ version = 4
 [[package]]
 name = "atlas"
 version = "0.1.0"
+dependencies = [
+ "atlas-assembler",
+ "atlas-isa",
+]
 
 [[package]]
-name = "atlas-isa"
-version = "0.1.0"
-
-[[package]]
-name = "atlas-lexer"
+name = "atlas-assembler"
 version = "0.1.0"
 dependencies = [
  "atlas-isa",
 ]
 
 [[package]]
-name = "atlas-parser"
+name = "atlas-isa"
+version = "0.1.0"
+
+[[package]]
+name = "atlas-linker"
 version = "0.1.0"
 dependencies = [
+ "atlas-assembler",
  "atlas-isa",
 ]

@@ -1,8 +1,9 @@
 [workspace]
+resolver = "3"
 members = [
     "crates/atlas-isa",
-    "crates/atlas-lexer",
-    "crates/atlas-parser",
+    "crates/atlas-assembler",
+    "crates/atlas-linker",
     "cli/atlas",
 ]
 
