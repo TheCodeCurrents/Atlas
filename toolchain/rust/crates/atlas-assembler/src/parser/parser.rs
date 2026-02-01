@@ -408,12 +408,6 @@ impl<'a> Parser<'a> {
                         let target_addr = match symbol {
                             crate::parser::symbols::Symbol::Label(addr) => *addr,
                             crate::parser::symbols::Symbol::External => 0,
-                            _ => {
-                                return Err(ParseError::InvalidParameters {
-                                    line: next_tok.span.line,
-                                    details: format!("Symbol '{}' is not a valid branch target", label_name),
-                                });
-                            }
                         };
                         
                         self.expect_newline()?;
