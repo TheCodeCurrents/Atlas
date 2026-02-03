@@ -13,4 +13,4 @@ pub mod encoder;
 // Re-export commonly used types
 pub use instruction::{Instruction, ResolvedInstruction};
 pub use opcode::{AluOp, BranchCond, ImmOp, MemOp, PortOp, StackOp, XTypeOp};
-pub use operands::{MOffset, RegisterIdentifier, RegisterPairIdentifier, XOperand};
+pub use operands::{BranchOperand, MOffset, RegisterIdentifier, RegisterPairIdentifier, XOperand};

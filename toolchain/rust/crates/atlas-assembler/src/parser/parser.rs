@@ -1,4 +1,4 @@
-use atlas_isa::{AluOp, BranchCond, ImmOp, Instruction, MemOp, PortOp, ResolvedInstruction, StackOp, XTypeOp, instruction::InstructionFormat, operands::{MOffset, RegisterPairIdentifier, XOperand}};
+use atlas_isa::{AluOp, BranchCond, BranchOperand, ImmOp, Instruction, MemOp, PortOp, ResolvedInstruction, StackOp, XTypeOp, instruction::InstructionFormat, operands::{MOffset, RegisterPairIdentifier, XOperand}};
 use crate::lexer::{Directive, LexError, Lexer, SpannedToken, Token};
 
 use crate::{parser::error::ParseError, parser::symbols::SymbolTable};
@@ -41,7 +41,7 @@ impl<'a> Iterator for Parser<'a> {
             }
             Token::LabelDef(name) => {
                 // handle label definitions here
-                self.symbols.insert(name, crate::parser::symbols::Symbol::Label(self.pos as u32));
+                self.symbols.insert(name, crate::parser::symbols::Symbol::Label(()));
 
                 // call again so it returns the next instruction
                 self.next()
@@ -88,7 +88,7 @@ impl<'a> Parser<'a> {
 
             match spanned.token {
                 Token::LabelDef(name) => {
-                    table.insert(name, crate::parser::symbols::Symbol::Label(pos));
+                    table.insert(name, crate::parser::symbols::Symbol::Label(()));
                 }
                 Token::Directive(Directive::Import) => {
                     // register imported symbol if present
@@ -385,7 +385,7 @@ impl<'a> Parser<'a> {
                             Ok(ResolvedInstruction::BI {
                                 absolute: false,
                                 cond,
-                                address: imm.value as u8,
+                                operand: BranchOperand::Immediate(imm.value as u8),
                             })
                         } else {
                             // Absolute immediate branch
@@ -393,30 +393,26 @@ impl<'a> Parser<'a> {
                             Ok(ResolvedInstruction::BI {
                                 absolute: true,
                                 cond,
-                                address: imm.value as u8,
+                                operand: BranchOperand::Immediate(imm.value as u8),
                             })
                         }
                     },
                     Token::LabelRef(label_name) => {
-                        // Branch to label - resolve it
-                        let symbol = self.symbols.resolve(&label_name)
+                        // Branch to label - store label reference (do NOT resolve yet)
+                        // Just verify that the label exists (either defined locally or imported)
+                        let _symbol = self.symbols.resolve(&label_name)
                             .ok_or(ParseError::UnknownSymbol {
                                 line: next_tok.span.line,
                                 name: label_name.clone(),
                             })?;
                         
-                        let target_addr = match symbol {
-                            crate::parser::symbols::Symbol::Label(addr) => *addr,
-                            crate::parser::symbols::Symbol::External => 0,
-                        };
-                        
                         self.expect_newline()?;
                         
-                        // Branches to labels are always absolute (resolved to label position)
+                        // Branches to labels are always absolute (will be resolved by linker)
                         Ok(ResolvedInstruction::BI {
                             absolute: true,
                             cond,
-                            address: target_addr as u8,
+                            operand: BranchOperand::Label(label_name),
                         })
                     },
                     Token::Register(reg1) => {

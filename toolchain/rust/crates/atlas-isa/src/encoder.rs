@@ -1,5 +1,5 @@
 use crate::ResolvedInstruction;
-use crate::operands::{MOffset, RegisterPairIdentifier, XOperand};
+use crate::operands::{BranchOperand, MOffset, RegisterPairIdentifier, XOperand};
 use crate::opcode::{AluOp, ImmOp, MemOp, BranchCond, StackOp, PortOp, XTypeOp};
 
 
@@ -36,11 +36,18 @@ impl ResolvedInstruction {
 
                 Ok(encoded)
             }
-            ResolvedInstruction::BI { absolute, cond, address } => {
+            ResolvedInstruction::BI { absolute, cond, operand } => {
+                let address = match operand {
+                    BranchOperand::Immediate(addr) => *addr,
+                    BranchOperand::Label(name) => {
+                        return Err(format!("Cannot encode unresolved label reference: '{}'", name));
+                    }
+                };
+                
                 let encoded = (8 << 12)
                     | ((*absolute as u16) << 11)
                     | ((*cond as u16) << 8)
-                    | (*address as u16);
+                    | (address as u16);
 
                 Ok(encoded)
             }
@@ -188,7 +195,7 @@ impl ResolvedInstruction {
                 Ok(ResolvedInstruction::BI {
                     absolute,
                     cond,
-                    address,
+                    operand: BranchOperand::Immediate(address),
                 })
             }
             9 => {

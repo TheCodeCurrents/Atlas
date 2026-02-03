@@ -3,7 +3,7 @@ use std::collections::HashMap;
 // TODO: Add support for constants/macros
 #[derive(Debug, Clone)]
 pub enum Symbol {
-    Label(u32),
+    Label(()),
     External,
     // Constant(String),
 }

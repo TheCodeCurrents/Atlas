@@ -1,5 +1,5 @@
 use crate::opcode::{AluOp, BranchCond, ImmOp, MemOp, PortOp, StackOp, XTypeOp};
-use crate::operands::{MOffset, RegisterIdentifier, RegisterPairIdentifier, XOperand};
+use crate::operands::{BranchOperand, MOffset, RegisterIdentifier, RegisterPairIdentifier, XOperand};
 
 /// Instruction by mnemonic
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,7 +99,7 @@ pub enum ResolvedInstruction {
     BI {
         absolute: bool,
         cond: BranchCond,
-        address: u8,
+        operand: BranchOperand,
     },
     BR {
         absolute: bool,

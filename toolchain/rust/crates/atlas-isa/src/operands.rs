@@ -17,6 +17,15 @@ pub enum MOffset {
     SR(RegisterIdentifier),
 }
 
+/// Branch operand - can be an immediate address or a label reference
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BranchOperand {
+    /// Direct immediate address (resolved)
+    Immediate(u8),
+    /// Reference to a label (to be resolved by linker)
+    Label(String),
+}
+
 /// Operand for extended (X-type) instructions
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum XOperand {
