@@ -127,7 +127,7 @@ impl<'a> Parser<'a> {
     fn handle_directive(&mut self, directive: Directive) -> Result<(), ParseError> {
         match directive {
             Directive::Import => {
-                let next = self.next_token()?;
+                let next: SpannedToken = self.next_token()?;
                 if let Token::LabelRef(name) = next.token {
                     self.symbols.insert(name, crate::parser::symbols::Symbol::External);
                 } else {
@@ -231,6 +231,7 @@ impl<'a> Parser<'a> {
                     op,
                     dest: rd,
                     source: rs,
+                    line,
                 })
             },
             InstructionFormat::I => {
@@ -250,6 +251,7 @@ impl<'a> Parser<'a> {
                     op,
                     dest: rd,
                     immediate: imm as u8,
+                    line,
                 })
             },
             InstructionFormat::M => {
@@ -356,6 +358,7 @@ impl<'a> Parser<'a> {
                     dest: rd,
                     base,
                     offset,
+                    line,
                 })
             },
             InstructionFormat::B => {
@@ -386,6 +389,7 @@ impl<'a> Parser<'a> {
                                 absolute: false,
                                 cond,
                                 operand: BranchOperand::Immediate(imm.value as u8),
+                                line,
                             })
                         } else {
                             // Absolute immediate branch
@@ -394,6 +398,7 @@ impl<'a> Parser<'a> {
                                 absolute: true,
                                 cond,
                                 operand: BranchOperand::Immediate(imm.value as u8),
+                                line,
                             })
                         }
                     },
@@ -413,6 +418,7 @@ impl<'a> Parser<'a> {
                             absolute: true,
                             cond,
                             operand: BranchOperand::Label(label_name),
+                            line,
                         })
                     },
                     Token::Register(reg1) => {
@@ -425,6 +431,7 @@ impl<'a> Parser<'a> {
                             absolute: true,
                             cond,
                             source: RegisterPairIdentifier { high: reg1, low: reg2 },
+                            line,
                         })
                     },
                     other => {
@@ -450,6 +457,7 @@ impl<'a> Parser<'a> {
                 Ok(ResolvedInstruction::S {
                     op,
                     register: reg,
+                    line,
                 })
             },
             InstructionFormat::P => {
@@ -469,6 +477,7 @@ impl<'a> Parser<'a> {
                     op,
                     register: reg,
                     offset: offset as u8,
+                    line,
                 })
             },
             InstructionFormat::X => {
@@ -523,6 +532,7 @@ impl<'a> Parser<'a> {
                 Ok(ResolvedInstruction::X {
                     op,
                     operand,
+                    line,
                 })
             },
             InstructionFormat::Virtual => {
@@ -534,6 +544,7 @@ impl<'a> Parser<'a> {
                     op: AluOp::MOV,
                     dest: 0,
                     source: 0,
+                    line,
                 })
             }
         }

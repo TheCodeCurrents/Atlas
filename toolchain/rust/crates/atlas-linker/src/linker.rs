@@ -53,7 +53,7 @@ impl Linker {
     /// Resolve labels in a single instruction
     fn resolve_instruction(&self, instr: ResolvedInstruction) -> Result<ResolvedInstruction, String> {
         match instr {
-            ResolvedInstruction::BI { absolute, cond, operand } => {
+            ResolvedInstruction::BI { absolute, cond, operand, line } => {
                 let resolved_operand = match operand {
                     BranchOperand::Immediate(addr) => BranchOperand::Immediate(addr),
                     BranchOperand::Label(label) => {
@@ -66,6 +66,7 @@ impl Linker {
                     absolute,
                     cond,
                     operand: resolved_operand,
+                    line,
                 })
             }
             other => Ok(other),

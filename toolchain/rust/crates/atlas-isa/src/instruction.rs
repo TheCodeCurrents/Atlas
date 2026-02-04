@@ -84,39 +84,62 @@ pub enum ResolvedInstruction {
         op: AluOp,
         dest: RegisterIdentifier,
         source: RegisterIdentifier,
+        line: usize,
     },
     I {
         op: ImmOp,
         dest: RegisterIdentifier,
         immediate: u8,
+        line: usize,
     },
     M {
         op: MemOp,
         dest: RegisterIdentifier,
         base: RegisterIdentifier,
         offset: MOffset,
+        line: usize,
     },
     BI {
         absolute: bool,
         cond: BranchCond,
         operand: BranchOperand,
+        line: usize,
     },
     BR {
         absolute: bool,
         cond: BranchCond,
         source: RegisterPairIdentifier,
+        line: usize,
     },
     S {
         op: StackOp,
         register: RegisterIdentifier,
+        line: usize,
     },
     P {
         op: PortOp,
         register: RegisterIdentifier,
         offset: u8,
+        line: usize,
     },
     X {
         op: XTypeOp,
         operand: XOperand,
+        line: usize,
     },
+}
+
+impl ResolvedInstruction {
+    pub fn line(&self) -> usize {
+        match self {
+            ResolvedInstruction::A { line, .. } => *line,
+            ResolvedInstruction::I { line, .. } => *line,
+            ResolvedInstruction::M { line, .. } => *line,
+            ResolvedInstruction::BI { line, .. } => *line,
+            ResolvedInstruction::BR { line, .. } => *line,
+            ResolvedInstruction::S { line, .. } => *line,
+            ResolvedInstruction::P { line, .. } => *line,
+            ResolvedInstruction::X { line, .. } => *line,
+        }
+    }
 }

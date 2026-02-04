@@ -1,52 +1,20 @@
-use std::{env};
+pub mod args;
 
-pub mod command;
+use args::Arguments;
+use clap::Parser;
 
-use command::Command;
-use atlas_assembler::Parser;
+use crate::args::Command;
 
-fn main() -> Result<(), String> {
-    println!("Atlas CLI Tool");
+fn main() {
+    let args = Arguments::parse();
 
-    let args = env::args().collect::<Vec<String>>();
-
-    if args.len() <= 1 {
-        return Err(String::from("Expected subcommand."))
+    if let Err(e) = match args.command {
+        Command::Asm { input, output } => {
+            atlas_assembler::assemble(&input, &output)
+        },
+        _ => Ok(()),
+    } {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
-    
-    let subcommand = Command::from_args(&args)?;
-
-    match subcommand {
-        Command::ASM { input, output } => {
-            println!("Assembling from {} to {}", input, output);
-            
-            // get string from input file
-            let input_content = std::fs::read_to_string(&input)
-                .map_err(|e| format!("Failed to read input file: {}", e))?;
-
-            // Parse the input
-            let parser = Parser::new(&input_content);
-            
-            println!("\n=== Parsed Instructions ===");
-            let mut inst_count = 0;
-            for (i, result) in parser.enumerate() {
-                match result {
-                    Ok(instruction) => {
-                        println!("[{}] {:?}", i, instruction);
-                        inst_count += 1;
-                    }
-                    Err(e) => {
-                        eprintln!("Parse error at instruction {}: {}", i, e);
-                        return Err(format!("Failed to parse: {}", e));
-                    }
-                }
-            }
-            println!("=== End Instructions ({} instructions) ===\n", inst_count);
-        }
-        _ => {
-            return Err(String::from("Unknown command."));
-        }
-    }
-
-    return Ok(())
 }

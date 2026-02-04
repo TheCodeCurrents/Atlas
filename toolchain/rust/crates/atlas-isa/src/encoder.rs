@@ -1,18 +1,19 @@
 use crate::ResolvedInstruction;
+use crate::encoding_error::EncodingError;
 use crate::operands::{BranchOperand, MOffset, RegisterPairIdentifier, XOperand};
 use crate::opcode::{AluOp, ImmOp, MemOp, BranchCond, StackOp, PortOp, XTypeOp};
 
 
 impl ResolvedInstruction {
-    pub fn encode(&self) -> Result<u16, String> {
+    pub fn encode(&self) -> Result<u16, EncodingError> {
         match &self {
-            ResolvedInstruction::A { op, dest, source } => {
+            ResolvedInstruction::A { op, dest, source, line: _ } => {
                 let encoded = ((*dest as u16) << 12) 
                     | (*source as u16)
                     | ((*op as u16));
                 Ok(encoded)
             }
-            ResolvedInstruction::I { op, dest, immediate } => {
+            ResolvedInstruction::I { op, dest, immediate, line: _ } => {
                 let type_field = 1 + *op as u16;
 
                 let encoded: u16 = ((type_field) << 12)
@@ -21,7 +22,7 @@ impl ResolvedInstruction {
 
                 Ok(encoded)
             }
-            ResolvedInstruction::M { op, dest, base, offset } => {
+            ResolvedInstruction::M { op, dest, base, offset, line: _ } => {
                 let type_field = 6 + *op as u16;
 
                 let offset_val = match offset {
@@ -36,11 +37,14 @@ impl ResolvedInstruction {
 
                 Ok(encoded)
             }
-            ResolvedInstruction::BI { absolute, cond, operand } => {
+            ResolvedInstruction::BI { absolute, cond, operand, line } => {
                 let address = match operand {
                     BranchOperand::Immediate(addr) => *addr,
                     BranchOperand::Label(name) => {
-                        return Err(format!("Cannot encode unresolved label reference: '{}'", name));
+                        return Err(EncodingError {
+                            line: *line,
+                            message: format!("Cannot encode unresolved label reference: '{}'", name),
+                        });
                     }
                 };
                 
@@ -51,7 +55,7 @@ impl ResolvedInstruction {
 
                 Ok(encoded)
             }
-            ResolvedInstruction::BR { absolute, cond, source } => {
+            ResolvedInstruction::BR { absolute, cond, source, line: _ } => {
                 let encoded = (9 << 12)
                     | ((*absolute as u16) << 11)
                     | ((*cond as u16) << 8)
@@ -60,14 +64,14 @@ impl ResolvedInstruction {
 
                 Ok(encoded)
             }
-            ResolvedInstruction::S { op, register } => {
+            ResolvedInstruction::S { op, register, line: _ } => {
                 let encoded = (10 << 12)
                     | ((*op as u16) << 8)
                     | (*register as u16);
 
                 Ok(encoded)
             }
-            ResolvedInstruction::P { op, register, offset } => {
+            ResolvedInstruction::P { op, register, offset, line: _ } => {
                 let encoded = (11 << 12)
                     | ((*op as u16) << 11)
                     | ((*register as u16) << 8)
@@ -75,7 +79,7 @@ impl ResolvedInstruction {
 
                 Ok(encoded)
             }
-            ResolvedInstruction::X { op, operand } => {
+            ResolvedInstruction::X { op, operand, line: _ } => {
                 let encoded = (12 << 12)
                     | ((*op as u16) << 8)
                     | match operand {
@@ -132,6 +136,7 @@ impl ResolvedInstruction {
                     op,
                     dest,
                     source,
+                    line: 0,
                 })
             }
             1..=5 => {
@@ -153,6 +158,7 @@ impl ResolvedInstruction {
                     op,
                     dest,
                     immediate,
+                    line: 0,
                 })
             }
             6..=7 => {
@@ -173,6 +179,7 @@ impl ResolvedInstruction {
                     dest,
                     base,
                     offset: MOffset::Offset8(offset_val),
+                    line: 0,
                 })
             }
             8 => {
@@ -196,6 +203,7 @@ impl ResolvedInstruction {
                     absolute,
                     cond,
                     operand: BranchOperand::Immediate(address),
+                    line: 0,
                 })
             }
             9 => {
@@ -220,6 +228,7 @@ impl ResolvedInstruction {
                     absolute,
                     cond,
                     source: RegisterPairIdentifier { high, low },
+                    line: 0,
                 })
             }
             10 => {
@@ -238,6 +247,7 @@ impl ResolvedInstruction {
                 Ok(ResolvedInstruction::S {
                     op,
                     register,
+                    line: 0,
                 })
             }
             11 => {
@@ -256,6 +266,7 @@ impl ResolvedInstruction {
                     op,
                     register,
                     offset,
+                    line: 0,
                 })
             }
             12 => {
@@ -279,6 +290,7 @@ impl ResolvedInstruction {
                 Ok(ResolvedInstruction::X {
                     op,
                     operand: XOperand::Registers(source, destination),
+                    line: 0,
                 })
             }
             _ => Err(format!("Invalid opcode: {}", opcode)),
