@@ -1,9 +1,0 @@
-[workspace]
-resolver = "3"
-members = [
-    "crates/atlas-isa",
-    "crates/atlas-assembler",
-    "crates/atlas-linker",
-    "cli/atlas",
-]
-
